@@ -1,0 +1,14 @@
+{
+    "pythonVersion": "3.13",
+    "pythonPlatform": "All",
+    "venvPath": "./.venv",
+    "typeCheckingMode": "standard",
+    "include": [
+        "data_exploration/",
+        "data/",
+        "preprocessing/",
+        "models/",
+        "train/"
+    ],
+    "exclude": ["**/__pycache__", ".*", "**/.ipynb_checkpoints**"]
+}

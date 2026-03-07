@@ -1,0 +1,16 @@
+name: Pyright
+
+on: [push]
+
+jobs:
+    type-check:
+        runs-on: ubuntu-latest
+
+        strategy:
+            matrix:
+                python-version: ["3.13"]
+
+        steps:
+            - uses: jakebailey/pyright-action@v3
+              with:
+                  python-version: ${{ matrix.python-version }}
