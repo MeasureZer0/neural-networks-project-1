@@ -1,0 +1,11 @@
+data/
+**.ipynb_checkpoints**
+__pycache__/
+
+logs/
+*.log
+*.out
+sbatch_*
+
+# MacOS
+.DS_Store
