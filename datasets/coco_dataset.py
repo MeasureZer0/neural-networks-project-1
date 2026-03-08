@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 from typing import Tuple
 
 import torch
@@ -11,7 +12,6 @@ class COCO_Dataset(Dataset):
     def __init__(self, image_dir: str, annotation_file: str) -> None:
         with open(annotation_file, "r") as file:
             dataset = json.load(file)
-
         self.idfile = {img["id"]: img["file_name"] for img in dataset["images"]}
         self.samples: list[Tuple[str, str]] = []
 
@@ -32,12 +32,12 @@ class COCO_Dataset(Dataset):
         return image, caption
 
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
+BASE_DIR = Path(__file__).parent.resolve()
+DATA_DIR = (BASE_DIR / ".." / "data" / "coco" / "annotations").resolve()
 
 dataset = COCO_Dataset(
-    image_dir=os.path.join(DATA_DIR, "test2017"),
-    annotation_file=os.path.join(DATA_DIR, "captions_test2017.json"),
+    image_dir=os.path.join(DATA_DIR, "val2017"),
+    annotation_file=os.path.join(DATA_DIR, "captions_val2017.json"),
 )
 
 dataloader = DataLoader(
