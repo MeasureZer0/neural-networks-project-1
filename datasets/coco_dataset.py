@@ -6,8 +6,8 @@ from typing import Callable, List, Optional, Tuple
 
 import torch
 import torchvision.io as io
-import torchvision.transforms.functional as TF
 from torch.utils.data import DataLoader, Dataset
+from transforms import TrainTransform
 
 
 class COCO_Dataset(Dataset):
@@ -41,7 +41,6 @@ class COCO_Dataset(Dataset):
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, str]:
         img_path, captions = self.samples[idx]
         image = io.read_image(str(img_path)).float() / 255.0
-        image = TF.resize(image, [224, 224])
         caption = random.choice(captions)
         if self.transform:
             image = self.transform(image)
@@ -57,6 +56,7 @@ if __name__ == "__main__":
     dataset = COCO_Dataset(
         image_dir=DATA_DIR / "val2017",
         annotation_file=DATA_DIR / "annotations" / "captions_val2017.json",
+        transform=TrainTransform(),
     )
 
     dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=4)
