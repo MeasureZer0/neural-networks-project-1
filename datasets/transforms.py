@@ -64,8 +64,8 @@ class ValTransform:
             self.transforms_list.append(Resize((self.size, self.size)))
         self.transforms_list.append(
             Normalize(
-                mean=[0.47087333, 0.44731208, 0.40772682],
-                std=[0.2517867, 0.2472999, 0.25216556],
+                mean=[0.47036065, 0.44706995, 0.40800951],
+                std=[0.25074435, 0.24559817, 0.25037548],
             )
         )
         self.transform = Compose(self.transforms_list)
