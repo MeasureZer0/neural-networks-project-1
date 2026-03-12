@@ -19,3 +19,9 @@ Then install the required packages:
 ```bash
 uv sync
 ```
+
+## Sources
+
+- [CLIP paper](https://arxiv.org/pdf/2103.00020)
+- [COCO dataset](https://cocodataset.org/#home)
+- [flickr30k dataset](https://huggingface.co/datasets/nlphuji/flickr30k)
