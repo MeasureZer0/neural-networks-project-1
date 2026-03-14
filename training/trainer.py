@@ -85,11 +85,11 @@ class Trainer:
         total_loss = 0.0
         pbar = tqdm(dataloader, desc=f"Validating Epoch {epoch}")
 
-        for images, texts in pbar:
-            images = images.to(self.device)
-            texts = texts.to(self.device)
+        for batch in pbar:
+            images = batch["images"].to(self.device)
+            tokens = {k: v.to(self.device) for k, v in batch["tokens"].items()}
 
-            image_features, text_features = self.model(images, texts)
+            image_features, text_features = self.model(images, tokens)
             loss, _, _ = self.criterion(image_features, text_features)
 
             total_loss += loss.item()
