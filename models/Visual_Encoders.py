@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
+from transformers import CLIPVisionModel
 
 
 class ResNet_Encoder(nn.Module):
@@ -47,6 +48,42 @@ class ResNet_Encoder(nn.Module):
         return self.encode(x)
 
 
+class ViT_Encoder(nn.Module):
+    def __init__(
+        self,
+        model_name: str = "openai/clip-vit-base-patch32",
+        embedding_dim: int = 256,
+        freeze_backbone: bool = False,
+    ) -> None:
+        super().__init__()
+
+        model = CLIPVisionModel.from_pretrained(model_name)
+        feature_dim = model.config.hidden_size
+        self.backbone = model
+        self.feature_dim = feature_dim
+        self.projection = nn.Linear(feature_dim, embedding_dim)
+
+        if freeze_backbone:
+            self.freeze_backbone()
+
+    def freeze_backbone(self) -> None:
+        for p in self.backbone.parameters():
+            p.requires_grad = False
+
+    def num_parameters(self) -> int:
+        return sum(p.numel() for p in self.parameters())
+
+    def encode(self, x: torch.Tensor) -> torch.Tensor:
+        outputs = self.backbone(pixel_values=x)
+        features = outputs.last_hidden_state[:, 0]
+        embeddings = self.projection(features)
+        embeddings = F.normalize(embeddings, dim=-1)
+        return embeddings
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.encode(x)
+
+
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -57,3 +94,12 @@ if __name__ == "__main__":
     x = torch.randn(8, 3, 224, 224).to(device)
     y = model(x)
     print(y.shape)  # torch.Size([8, 256])
+
+    model_2 = ViT_Encoder(
+        model_name="openai/clip-vit-base-patch32",
+        embedding_dim=256,
+        freeze_backbone=True,
+    ).to(device)
+
+    y_2 = model_2(x)
+    print(y_2.shape)  # torch.Size([8, 256])
