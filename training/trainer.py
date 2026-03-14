@@ -63,9 +63,6 @@ class Trainer:
             loss.backward()
             self.optimizer.step()
 
-            if self.scheduler is not None:
-                self.scheduler.step()
-
             total_loss += loss.item()
             pbar.set_postfix({"loss": loss.item()})
 
@@ -141,6 +138,8 @@ class Trainer:
         for epoch in range(1, epochs + 1):
             train_loss = self.train_one_epoch(train_loader, epoch)
             val_loss = self.validate_one_epoch(val_loader, epoch)
+            if self.scheduler is not None:
+                self.scheduler.step()
 
             print(
                 f"Epoch {epoch}: Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}"
