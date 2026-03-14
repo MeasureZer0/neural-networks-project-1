@@ -28,6 +28,7 @@ class Config:
     lr: float = 1e-4
     weight_decay: float = 0.01
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    use_fp16: bool = True
 
     # Model Architecture
     tokenizer: str = "openai/clip-vit-base-patch32"
@@ -47,5 +48,5 @@ class Config:
     checkpoint_dir: str = "checkpoints"
 
     # Logging
-    use_wandb: bool = False
-    wandb_project: str = "clip-training"
+    use_wandb: bool = True
+    wandb_project: str = "multimodal-clip-experiments"

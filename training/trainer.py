@@ -40,6 +40,9 @@ class Trainer:
         self.config = config
         self.start_epoch = start_epoch
 
+        self.use_fp16 = getattr(config, "use_fp16", False) and device == "cuda"
+        self.scaler = torch.cuda.amp.GradScaler(enabled=self.use_fp16)
+
         self.checkpoint_dir = getattr(config, "checkpoint_dir", "checkpoints")
         os.makedirs(self.checkpoint_dir, exist_ok=True)
 
@@ -102,14 +105,22 @@ class Trainer:
             images, tokens = self._batch_to_device(batch)
 
             self.optimizer.zero_grad()
-            image_features, text_features = self.model(images, tokens)
-            loss, logits_per_image, _ = self.criterion(image_features, text_features)
-            loss.backward()
 
+            with torch.cuda.amp.autocast(enabled=self.use_fp16):
+                image_features, text_features = self.model(images, tokens)
+                loss, logits_per_image, _ = self.criterion(
+                    image_features, text_features
+                )
+
+            self.scaler.scale(loss).backward()
+
+            if self.use_fp16:
+                self.scaler.unscale_(self.optimizer)
             grad_norm = torch.nn.utils.clip_grad_norm_(
                 self.model.parameters(), max_norm=1.0
             )
-            self.optimizer.step()
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
             total_loss += loss.item()
 
             metrics = self._batch_metrics(
@@ -153,8 +164,12 @@ class Trainer:
 
         for batch in pbar:
             images, tokens = self._batch_to_device(batch)
-            image_features, text_features = self.model(images, tokens)
-            loss, logits_per_image, _ = self.criterion(image_features, text_features)
+
+            with torch.cuda.amp.autocast(enabled=self.use_fp16):
+                image_features, text_features = self.model(images, tokens)
+                loss, logits_per_image, _ = self.criterion(
+                    image_features, text_features
+                )
 
             total_loss += loss.item()
 
@@ -207,6 +222,7 @@ class Trainer:
                 "scheduler_state_dict": self.scheduler.state_dict()
                 if self.scheduler
                 else None,
+                "scaler_state_dict": self.scaler.state_dict(),
                 "val_loss": val_loss,
                 "config": self.config,
                 "timestamp": timestamp,
