@@ -12,16 +12,15 @@ class ImageEncoder(nn.Module):
     def __init__(
         self,
         model_type: str = "resnet18",
-        pretrained: bool = True,
     ) -> None:
         super().__init__()
         self.model_type = model_type
         if model_type == "resnet18":
-            model = models.resnet18(pretrained=pretrained)
+            model = models.resnet18(pretrained=True)
             self.feature_dim = model.fc.in_features
             model.fc = nn.Identity()  # type: ignore
         elif model_type == "resnet50":
-            model = models.resnet50(pretrained=pretrained)
+            model = models.resnet50(pretrained=True)
             self.feature_dim = model.fc.in_features
             model.fc = nn.Identity()  # type: ignore
         elif model_type == "vit":

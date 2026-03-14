@@ -21,7 +21,7 @@ class TextEncoder(nn.Module):
         else:
             raise ValueError(f"Unknown model_type: {model_type}")
 
-    def freeze(self) -> None:
+    def freeze_backbone(self) -> None:
         for param in self.encoder.parameters():
             param.requires_grad = False
 
