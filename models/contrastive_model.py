@@ -41,9 +41,9 @@ class ContrastiveModel(nn.Module):
         features = self.image_encoder(image)
         return self.image_projection(features)
 
-    def encode(
-        self, tokens: Dict[str, torch.Tensor], image: torch.Tensor
+    def forward(
+        self, image: torch.Tensor, tokens: Dict[str, torch.Tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         text_embedding = self.encode_text(tokens)  # [B, embedding_dim]
         image_embedding = self.encode_image(image)  # [B, embedding_dim]
-        return text_embedding, image_embedding
+        return image_embedding, text_embedding

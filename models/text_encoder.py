@@ -27,7 +27,10 @@ class TextEncoder(nn.Module):
 
     def forward(self, tokens: Dict[str, torch.Tensor]) -> torch.Tensor:
         # {[B, seq_len], [B, attention_mask]} -> [B, feature_dim]
-        outputs = self.encoder(**tokens)
+        outputs = self.encoder(
+            input_ids=tokens["input_ids"],
+            attention_mask=tokens["attention_mask"],
+        )
         if self.model_type == "distilroberta":
             # [B, seq_len] -> [B, seq_len, 1]
             mask = tokens["attention_mask"].unsqueeze(-1).float()
