@@ -93,7 +93,9 @@ if __name__ == "__main__":
 
     x = torch.randn(8, 3, 224, 224).to(device)
     y = model(x)
-    print(y.shape)  # torch.Size([8, 256])
+
+    assert y.shape == (8, 256), f"Unexpected ResNet output shape: {y.shape}"
+    print(y.shape)
 
     model_2 = ViT_Encoder(
         model_name="openai/clip-vit-base-patch32",
@@ -102,4 +104,6 @@ if __name__ == "__main__":
     ).to(device)
 
     y_2 = model_2(x)
-    print(y_2.shape)  # torch.Size([8, 256])
+
+    assert y_2.shape == (8, 256), f"Unexpected ViT output shape: {y_2.shape}"
+    print(y_2.shape)
