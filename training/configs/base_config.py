@@ -6,6 +6,9 @@ import torch
 
 @dataclass
 class Config:
+    # Metadata
+    name: str = "base_config"
+
     # Training Loop
     batch_size: int = 32
     epochs: int = 10

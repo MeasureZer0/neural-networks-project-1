@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from typing import Any, Optional, Union
 
 import torch
@@ -10,17 +11,23 @@ from torch.optim.lr_scheduler import LRScheduler
 def save_checkpoint(
     state: dict[str, Any],
     checkpoint_dir: Union[str, os.PathLike],
-    filename: str = "checkpoint.pth.tar",
+    config_name: str = "base_config",
+    filename: Optional[str] = None,
     is_best: bool = False,
 ) -> None:
     """
     Save training checkpoint.
     """
     os.makedirs(checkpoint_dir, exist_ok=True)
+
+    if filename is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{config_name}_{timestamp}_checkpoint.pth.tar"
+
     filepath = os.path.join(checkpoint_dir, filename)
     torch.save(state, filepath)
     if is_best:
-        torch.save(state, os.path.join(checkpoint_dir, "model_best.pth.tar"))
+        torch.save(state, os.path.join(checkpoint_dir, f"{config_name}_model_best.pth"))
 
 
 def load_checkpoint(

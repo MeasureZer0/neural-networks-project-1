@@ -8,7 +8,7 @@ from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from training.config import Config
+from training.configs.base_config import Config
 
 
 class Trainer:
@@ -106,6 +106,11 @@ class Trainer:
     def save_checkpoint(
         self, epoch: int, val_loss: float, is_best: bool = False
     ) -> None:
+        from datetime import datetime
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        config_name = getattr(self.config, "name", "base_config")
+
         checkpoint = {
             "epoch": epoch,
             "model_state_dict": self.model.state_dict(),
@@ -115,13 +120,17 @@ class Trainer:
             else None,
             "val_loss": val_loss,
             "config": self.config,
+            "timestamp": timestamp,
         }
 
-        path = os.path.join(self.checkpoint_dir, f"checkpoint_epoch_{epoch}.pt")
+        filename = f"{config_name}_{timestamp}_epoch_{epoch}.pt"
+        path = os.path.join(self.checkpoint_dir, filename)
         torch.save(checkpoint, path)
 
         if is_best:
-            best_path = os.path.join(self.checkpoint_dir, "best_model.pt")
+            best_path = os.path.join(
+                self.checkpoint_dir, f"{config_name}_best_model.pt"
+            )
             torch.save(checkpoint, best_path)
             print(f"Saved best model with val_loss: {val_loss:.4f}")
 
