@@ -19,9 +19,11 @@ class Config:
     # Model Architecture
     tokenizer: str = "openai/clip-vit-base-patch32"
     tokenizer_maxlength: int = 77
-    image_dim: int = 512
-    text_dim: int = 512
-    embed_dim: int = 512
+    text_encoder_type: str = "clip"
+    image_encoder_type: str = "vit"
+    text_encoder_freeze: bool = False
+    image_encoder_freeze: bool = False
+    embedding_dim: int = 256
 
     # Paths
     data_dir: Path = Path("data/coco")
