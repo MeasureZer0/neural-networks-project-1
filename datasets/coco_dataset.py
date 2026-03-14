@@ -2,13 +2,14 @@ import json
 import random
 from collections import defaultdict
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import torch
 import torchvision.io as io
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoTokenizer
-from transforms import TrainTransform
+
+from datasets.transforms import TrainTransform
 
 
 class COCO_Dataset(Dataset):
@@ -41,7 +42,7 @@ class COCO_Dataset(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, dict]:
+    def __getitem__(self, idx: int) -> Dict[str, torch.Tensor | Dict]:
         img_path, captions = self.samples[idx]
         image = io.read_image(str(img_path)).float() / 255.0
         caption = random.choice(captions)
@@ -58,7 +59,7 @@ class COCO_Dataset(Dataset):
         # return_tensors="pt" returns [1, x]
         tokens = {k: v.squeeze(0) for k, v in tokens.items()}
 
-        return image, tokens
+        return {"images": image, "tokens": tokens}
 
 
 BASE_DIR = Path(__file__).parent.resolve()
