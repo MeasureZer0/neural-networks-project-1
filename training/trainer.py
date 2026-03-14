@@ -22,6 +22,7 @@ class Trainer:
         scheduler: Optional[LRScheduler],
         device: str,
         config: Config,
+        start_epoch: int = 1,
     ) -> None:
         self.model = model
         self.criterion = criterion
@@ -29,6 +30,7 @@ class Trainer:
         self.scheduler = scheduler
         self.device = device
         self.config = config
+        self.start_epoch = start_epoch
 
         self.checkpoint_dir = getattr(config, "checkpoint_dir", "checkpoints")
         os.makedirs(self.checkpoint_dir, exist_ok=True)
@@ -106,7 +108,7 @@ class Trainer:
         epochs = getattr(self.config, "epochs", 10)
         best_val_loss = float("inf")
 
-        for epoch in range(1, epochs + 1):
+        for epoch in range(self.start_epoch, epochs + 1):
             train_loss = self.train_one_epoch(train_loader, epoch)
             val_loss = self.validate_one_epoch(val_loader, epoch)
             if self.scheduler is not None:

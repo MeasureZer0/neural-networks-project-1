@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from datasets.coco_dataset import COCO_Dataset
 from datasets.transforms import TrainTransform, ValTransform
 from models.contrastive_model import ContrastiveModel
+from training.checkpointing import load_checkpoint
 from training.configs.base_config import Config
 from training.loss import InfoNCELoss
 from training.trainer import Trainer
@@ -41,6 +42,7 @@ def main() -> None:
         default="base_config",
         help="Name of the config file to use",
     )
+    parser.add_argument("--resume", type=str, default=None, help="Path to checkpoint")
     args = parser.parse_args()
 
     config = get_config(args.config)
@@ -60,6 +62,18 @@ def main() -> None:
     optimizer = torch.optim.AdamW(model.parameters(), lr=config.lr)
 
     scheduler = None  # Can add StepLR or CosineAnnealingLR
+
+    start_epoch = 1
+    if args.resume:
+        start_epoch, val_loss = load_checkpoint(
+            checkpoint_path=args.resume,
+            model=model,
+            optimizer=optimizer,
+            scheduler=scheduler,
+        )
+        model.to(config.device)
+        start_epoch += 1
+        print(f"Resumed from epoch {start_epoch - 1}, val_loss: {val_loss:.4f}")
 
     # Data loaders
     train_dataset = COCO_Dataset(
@@ -100,6 +114,7 @@ def main() -> None:
         scheduler=scheduler,
         device=config.device,
         config=config,
+        start_epoch=start_epoch,
     )
     trainer.fit(train_loader, val_loader)
 
