@@ -47,14 +47,14 @@ class Trainer:
         total_loss = 0.0
         pbar = tqdm(dataloader, desc=f"Training Epoch {epoch}")
 
-        for _batch_idx, (images, texts) in enumerate(pbar):
-            images = images.to(self.device)
-            texts = texts.to(self.device)
+        for batch in pbar:
+            images = batch["images"].to(self.device)
+            tokens = {k: v.to(self.device) for k, v in batch["tokens"].items()}
 
             self.optimizer.zero_grad()
 
             # Forward pass
-            image_features, text_features = self.model(images, texts)
+            image_features, text_features = self.model(images, tokens)
 
             # Loss calculation
             loss, _, _ = self.criterion(image_features, text_features)
