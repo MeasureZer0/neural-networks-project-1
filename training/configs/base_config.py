@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional, Tuple
 
 import torch
 
@@ -8,6 +9,18 @@ import torch
 class Config:
     # Metadata
     name: str = "base_config"
+
+    # Transformations
+    size: int = 224
+    crop_scale: Optional[Tuple] = (0.5, 1.0)
+    hflip_p: Optional[float] = 0.5
+    jitter_params: Optional[Tuple[float, float, float, float]] = (
+        0.4,
+        0.4,
+        0.2,
+        0.1,
+    )
+    use_ccrop: bool = False
 
     # Training Loop
     batch_size: int = 32

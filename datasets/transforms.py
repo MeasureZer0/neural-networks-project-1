@@ -16,7 +16,7 @@ class TrainTransform:
     def __init__(
         self,
         size: int = 224,
-        crop_scale: Optional[Tuple] = (0.08, 1.0),
+        crop_scale: Optional[Tuple] = (0.5, 1.0),
         hflip_p: Optional[float] = 0.5,
         jitter_params: Optional[Tuple[float, float, float, float]] = (
             0.4,

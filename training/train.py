@@ -79,7 +79,12 @@ def main() -> None:
     train_dataset = COCO_Dataset(
         image_dir=config.train_image_dir,
         annotation_file=config.train_annotation_file,
-        img_transform=TrainTransform(),
+        img_transform=TrainTransform(
+            size=config.size,
+            crop_scale=config.crop_scale,
+            hflip_p=config.hflip_p,
+            jitter_params=config.jitter_params,
+        ),
         tokenizer=config.tokenizer,
         tokenizer_maxlength=config.tokenizer_maxlength,
     )
@@ -87,7 +92,7 @@ def main() -> None:
     val_dataset = COCO_Dataset(
         image_dir=config.val_image_dir,
         annotation_file=config.val_annotation_file,
-        img_transform=ValTransform(),
+        img_transform=ValTransform(use_ccrop=config.use_ccrop),
         tokenizer=config.tokenizer,
         tokenizer_maxlength=config.tokenizer_maxlength,
     )

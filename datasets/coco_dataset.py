@@ -46,6 +46,11 @@ class COCO_Dataset(Dataset):
         img_path, captions = self.samples[idx]
         image = io.read_image(str(img_path)).float() / 255.0
         caption = random.choice(captions)
+        if image.shape[0] == 1:
+            image = image.repeat(3, 1, 1)
+        elif image.shape[0] == 4:
+            image = image[:3]
+
         if self.img_transform:
             image = self.img_transform(image)
         # dict: "input_ids" and "attention_mask"
@@ -57,7 +62,11 @@ class COCO_Dataset(Dataset):
             return_tensors="pt",
         )
         # return_tensors="pt" returns [1, x]
-        tokens = {k: v.squeeze(0) for k, v in tokens.items()}
+        tokens = {
+            k: v.squeeze(0)
+            for k, v in tokens.items()
+            if k in ("input_ids", "attention_mask")
+        }
 
         return {"images": image, "tokens": tokens}
 
