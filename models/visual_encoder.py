@@ -1,11 +1,15 @@
 import logging
+import warnings
 
 import torch
 import torch.nn as nn
 import torchvision.models as models
 from transformers import CLIPVisionModel
 
+logging.getLogger("transformers").setLevel(logging.ERROR)
 logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
+logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
+warnings.filterwarnings("ignore")
 
 
 class ImageEncoder(nn.Module):

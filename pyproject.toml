@@ -5,6 +5,7 @@ description = "Multimodal classification: text + image data"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "fvcore>=0.1.5.post20221221",
     "matplotlib>=3.10.8",
     "numpy>=2.4.2",
     "pandas>=3.0.1",
@@ -42,5 +43,6 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [dependency-groups]
 dev = [
+    "ipykernel>=7.2.0",
     "ruff>=0.15.5",
 ]
