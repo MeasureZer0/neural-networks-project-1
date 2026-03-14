@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from typing import Optional
 
 import torch
@@ -8,6 +9,7 @@ from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from training.checkpointing import save_checkpoint
 from training.configs.base_config import Config
 
 
@@ -100,37 +102,6 @@ class Trainer:
 
         return avg_loss
 
-    def save_checkpoint(
-        self, epoch: int, val_loss: float, is_best: bool = False
-    ) -> None:
-        from datetime import datetime
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        config_name = getattr(self.config, "name", "base_config")
-
-        checkpoint = {
-            "epoch": epoch,
-            "model_state_dict": self.model.state_dict(),
-            "optimizer_state_dict": self.optimizer.state_dict(),
-            "scheduler_state_dict": self.scheduler.state_dict()
-            if self.scheduler
-            else None,
-            "val_loss": val_loss,
-            "config": self.config,
-            "timestamp": timestamp,
-        }
-
-        filename = f"{config_name}_{timestamp}_epoch_{epoch}.pt"
-        path = os.path.join(self.checkpoint_dir, filename)
-        torch.save(checkpoint, path)
-
-        if is_best:
-            best_path = os.path.join(
-                self.checkpoint_dir, f"{config_name}_best_model.pt"
-            )
-            torch.save(checkpoint, best_path)
-            print(f"Saved best model with val_loss: {val_loss:.4f}")
-
     def fit(self, train_loader: DataLoader, val_loader: DataLoader) -> None:
         epochs = getattr(self.config, "epochs", 10)
         best_val_loss = float("inf")
@@ -149,4 +120,24 @@ class Trainer:
             if is_best:
                 best_val_loss = val_loss
 
-            self.save_checkpoint(epoch, val_loss, is_best=is_best)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            config_name = getattr(self.config, "name", "base_config")
+
+            state = {
+                "epoch": epoch,
+                "model_state_dict": self.model.state_dict(),
+                "optimizer_state_dict": self.optimizer.state_dict(),
+                "scheduler_state_dict": self.scheduler.state_dict()
+                if self.scheduler
+                else None,
+                "val_loss": val_loss,
+                "config": self.config,
+                "timestamp": timestamp,
+            }
+
+            save_checkpoint(
+                state=state,
+                checkpoint_dir=self.checkpoint_dir,
+                config_name=config_name,
+                is_best=is_best,
+            )
