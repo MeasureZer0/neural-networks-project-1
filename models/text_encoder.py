@@ -1,14 +1,9 @@
 import logging
-from pathlib import Path
 from typing import Dict
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
 from transformers import CLIPTextModel, RobertaModel
-
-from datasets.coco_dataset import COCO_Dataset
-from datasets.transforms import TrainTransform
 
 logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 
@@ -50,38 +45,3 @@ class TextEncoder(nn.Module):
             ]
 
         return x
-
-
-if __name__ == "__main__":
-    textencoder = TextEncoder()
-
-    BASE_DIR = Path(__file__).parent.resolve()
-    DATA_DIR = (BASE_DIR / ".." / "data" / "coco").resolve()
-    dataset = COCO_Dataset(
-        image_dir=DATA_DIR / "val2017",
-        annotation_file=DATA_DIR / "annotations" / "captions_val2017.json",
-        img_transform=TrainTransform(),
-    )
-    dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=4)
-
-if __name__ == "__main__":
-    BASE_DIR = Path(__file__).parent.resolve()
-    DATA_DIR = (BASE_DIR / ".." / "data" / "coco").resolve()
-    dataset = COCO_Dataset(
-        image_dir=DATA_DIR / "val2017",
-        annotation_file=DATA_DIR / "annotations" / "captions_val2017.json",
-        img_transform=TrainTransform(),
-    )
-    dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=4)
-    batch = next(iter(dataloader))
-
-    for model_type in ["clip"]:
-        print()
-        print("=" * 60)
-        print(f"MODEL: {model_type}")
-        print("=" * 60)
-
-        encoder = TextEncoder(model_type=model_type)
-        encoder.eval()
-
-        print(encoder(batch["tokens"]))
