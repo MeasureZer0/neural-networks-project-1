@@ -8,7 +8,8 @@ import torch
 import torchvision.io as io
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoTokenizer
-from transforms import TrainTransform
+
+from datasets.transforms import TrainTransform
 
 
 class COCO_Dataset(Dataset):
