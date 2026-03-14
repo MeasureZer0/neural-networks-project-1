@@ -1,3 +1,6 @@
+import argparse
+import importlib
+
 import torch
 from torch.utils.data import DataLoader
 
@@ -5,13 +8,44 @@ from datasets.coco_dataset import COCO_Dataset
 from datasets.transforms import TrainTransform
 from models.clip import SimpleCLIP
 from models.dummy import TextEncoder, VisionEncoder
-from training.config import Config
+from training.configs.base_config import Config
 from training.loss import CLIPLoss
 from training.trainer import Trainer
 
 
+def get_config(config_name: str) -> Config:
+    try:
+        # Try to import from training.configs
+        module_name = f"training.configs.{config_name}"
+        module = importlib.import_module(module_name)
+        # Expecting a class named 'Config' in the module
+        if hasattr(module, "Config"):
+            config_cls = module.Config
+            # If it's a class (not the base Config instance we might have imported)
+            if isinstance(config_cls, type) and issubclass(config_cls, Config):
+                return config_cls()
+            # If it's already an instance of Config (like in base_config if we weren't careful)
+            elif isinstance(config_cls, Config):
+                return config_cls
+    except (ImportError, AttributeError) as e:
+        print(f"Error loading config {config_name}: {e}")
+        print("Using default Config")
+
+    return Config()
+
+
 def main() -> None:
-    config = Config()
+    parser = argparse.ArgumentParser(description="Train CLIP model")
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="base_config",
+        help="Name of the config file to use",
+    )
+    args = parser.parse_args()
+
+    config = get_config(args.config)
+    print(f"Using config: {config.name}")
 
     # Initialize components (Placeholders for encoders)
     image_encoder = VisionEncoder(output_dim=config.image_dim)
