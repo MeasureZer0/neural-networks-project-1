@@ -5,13 +5,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class CLIPLoss(nn.Module):
+class InfoNCELoss(nn.Module):
     """
     CLIP-style symmetric InfoNCE loss.
 
     Expects:
-        image_features: [batch_size, d]
-        text_features:  [batch_size, d]
+        image_features: [B, embedding_size]
+        text_features:  [B, embedding_size]
 
     Returns:
         loss, logits_per_image, logits_per_text
@@ -39,7 +39,7 @@ class CLIPLoss(nn.Module):
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         if image_features.ndim != 2 or text_features.ndim != 2:
             raise ValueError(
-                "image_features and text_features must both be 2D tensors [B, D]."
+                "image_features and text_features must both be 2D tensors [B, embedding_size]."
             )
 
         if image_features.shape[0] != text_features.shape[0]:
