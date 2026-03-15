@@ -1,17 +1,19 @@
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional, Tuple
 
-from training.configs.base_config import Config as BaseConfig
+import torch
 
 
 @dataclass
-class Config(BaseConfig):
+class Config:
     name: str = "baseline"
 
     # Augmentation
+    size: int = 224
     crop_scale: Optional[Tuple[float, float]] = (0.9, 1.0)
     hflip_p: Optional[float] = None
-    jitter_params: None = None
+    jitter_params: Optional[Tuple[float, float, float, float]] = None
     use_ccrop: bool = True
 
     # Optimizer
@@ -38,6 +40,19 @@ class Config(BaseConfig):
 
     # Training
     epochs: int = 30
-    batch_size: int = 8
+    batch_size: int = 32
     use_fp16: bool = True
     grad_clip_norm: float = 1.0
+    device: str = "cuda" if torch.cuda.is_available() else "cpu"
+
+    # Paths
+    data_dir: Path = Path("data/coco")
+    train_image_dir: Path = data_dir / "train2017"
+    train_annotation_file: Path = data_dir / "annotations" / "captions_train2017.json"
+    val_image_dir: Path = data_dir / "val2017"
+    val_annotation_file: Path = data_dir / "annotations" / "captions_val2017.json"
+    checkpoint_dir: str = "checkpoints"
+
+    # Logging
+    use_wandb: bool = True
+    wandb_project: str = "multimodal-clip-experiments"

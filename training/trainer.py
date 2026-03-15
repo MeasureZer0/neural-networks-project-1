@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from training.checkpointing import save_checkpoint
-from training.configs.base_config import Config
+from training.configs.baseline_config import Config
 from training.metrics import (
     full_retrieval_eval,
     mean_reciprocal_rank,
@@ -231,7 +231,7 @@ class Trainer:
                 best_val_loss = val_loss
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            config_name = getattr(self.config, "name", "base_config")
+            config_name = getattr(self.config, "name", "baseline_config")
 
             state = {
                 "epoch": epoch,

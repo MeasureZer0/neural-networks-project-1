@@ -10,7 +10,7 @@ def mean_reciprocal_rank(logits: torch.Tensor) -> float:
     B = logits.shape[0]
     targets = torch.arange(B, device=logits.device)
     sorted_indicies = logits.argsort(dim=-1, descending=True)
-    ranks = (sorted_indicies == targets.unsequeeze(1)).nonzero()[:, 1] + 1
+    ranks = (sorted_indicies == targets.unsqueeze(1)).nonzero()[:, 1] + 1
     return (1.0 / ranks.float()).mean().item()
 
 

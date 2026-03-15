@@ -11,7 +11,7 @@ from datasets.coco_dataset import COCO_Dataset
 from datasets.transforms import TrainTransform, ValTransform
 from models.contrastive_model import ContrastiveModel
 from training.checkpointing import load_checkpoint
-from training.configs.base_config import Config
+from training.configs.baseline_config import Config
 from training.loss import InfoNCELoss
 from training.trainer import Trainer
 
@@ -87,7 +87,11 @@ def main() -> None:
     # Optimizer
 
     decay, no_decay = [], []
-    for name, param in model.named_parameters():
+
+    for _, name, param in [
+        *((model, n, p) for n, p in model.named_parameters()),
+        *((criterion, n, p) for n, p in criterion.named_parameters()),
+    ]:
         if not param.requires_grad:
             continue
         if param.ndim <= 1 or name.endswith(".bias"):
