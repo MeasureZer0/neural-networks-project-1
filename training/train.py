@@ -1,5 +1,6 @@
 import argparse
 import importlib
+import logging
 
 import torch
 from torch.utils.data import DataLoader
@@ -11,6 +12,9 @@ from training.checkpointing import load_checkpoint
 from training.configs.base_config import Config
 from training.loss import InfoNCELoss
 from training.trainer import Trainer
+
+logging.getLogger("transformers").setLevel(logging.ERROR)
+logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 
 
 def get_config(config_name: str) -> Config:

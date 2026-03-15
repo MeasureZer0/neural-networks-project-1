@@ -1,4 +1,5 @@
 import json
+import logging
 import random
 from collections import defaultdict
 from pathlib import Path
@@ -10,6 +11,11 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import AutoTokenizer
 
 from datasets.transforms import TrainTransform
+
+logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
+
+logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
+logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 
 
 class COCO_Dataset(Dataset):

@@ -7,6 +7,9 @@ from transformers import CLIPTextModel, RobertaModel
 
 logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 
+logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
+logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
+
 
 class TextEncoder(nn.Module):
     def __init__(self, model_type: str = "distilroberta") -> None:

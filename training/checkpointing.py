@@ -35,6 +35,7 @@ def load_checkpoint(
     model: nn.Module,
     optimizer: Optional[Optimizer] = None,
     scheduler: Optional[LRScheduler] = None,
+    scaler: Optional[torch.cuda.amp.GradScaler] = None,
 ) -> tuple[int, float]:
     """
     Load training checkpoint.
@@ -50,5 +51,7 @@ def load_checkpoint(
 
     if scheduler and checkpoint["scheduler_state_dict"]:
         scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+    if scaler and checkpoint.get("scaler_state_dict"):
+        scaler.load_state_dict(checkpoint["scaler_state_dict"])
 
     return checkpoint["epoch"], checkpoint["val_loss"]
