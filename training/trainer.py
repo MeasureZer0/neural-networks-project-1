@@ -10,7 +10,13 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from training.checkpointing import save_checkpoint
-from training.configs.base_config import Config
+from training.configs.baseline_config import Config
+from training.metrics import (
+    full_retrieval_eval,
+    mean_reciprocal_rank,
+    recall_at_k,
+    similarity_stats,
+)
 
 
 def _mean_reciprocal_rank(logits: torch.Tensor) -> torch.Tensor:
@@ -71,27 +77,17 @@ class Trainer:
         logits_per_images: torch.Tensor,
         prefix: str = "train",
     ) -> Dict:
-        targets = torch.arange(image_features.shape[0], device=image_features.device)
-
-        # Batch accuracy
-        batch_acc = (logits_per_images.argmax(dim=-1) == targets).float().mean()
-
-        # MMR
-        mrr = _mean_reciprocal_rank(logits_per_images)
-
-        # Diagonal similarity
-        sim_matrix = image_features @ text_features.T
-        diag_sim = sim_matrix.diagonal().mean()
-
-        # Off-diagonal similarity
-        n = sim_matrix.shape[0]
-        off_diag_sim = (sim_matrix.sum() - sim_matrix.diagonal().sum()) / (n * n - n)
+        recall = recall_at_k(logits_per_images, ks=[1, 5, 10])
+        mrr = mean_reciprocal_rank(logits_per_images)
+        sims = similarity_stats(image_features, text_features)
 
         return {
-            f"{prefix}/batch_accuracy": batch_acc.item(),
-            f"{prefix}/mrr": mrr.item(),
-            f"{prefix}/diagonal_similarity": diag_sim.item(),
-            f"{prefix}/off_diagonal_similarity": off_diag_sim.item(),
+            f"{prefix}/R@1": recall["R@1"],
+            f"{prefix}/R@5": recall["R@5"],
+            f"{prefix}/R@10": recall["R@10"],
+            f"{prefix}/mrr": mrr,
+            f"{prefix}/diag_sim": sims["diag_sim"],
+            f"{prefix}/off_diag_sim": sims["off_diag_sim"],
         }
 
     def train_one_epoch(self, dataloader: DataLoader, epoch: int) -> float:
@@ -121,6 +117,20 @@ class Trainer:
             )
             self.scaler.step(self.optimizer)
             self.scaler.update()
+
+            if self.scheduler is not None:
+                self.scheduler.step()
+
+            if self.use_wandb:
+                self.wandb.log(
+                    {
+                        "batch/loss": loss.item(),
+                        "batch/grad_norm": grad_norm.item(),
+                        "batch/temperature": self.criterion.logit_scale.exp().item(),
+                        "batch/lr": self.optimizer.param_groups[0]["lr"],
+                    }
+                )
+
             total_loss += loss.item()
 
             metrics = self._batch_metrics(
@@ -130,15 +140,6 @@ class Trainer:
                 accumulated_metrics[key] = accumulated_metrics.get(key, 0.0) + value
 
             pbar.set_postfix({"loss": f"{loss.item():.4f}"})
-
-            if self.use_wandb:
-                self.wandb.log(
-                    {
-                        "batch/loss": loss.item(),
-                        "batch/grad_norm": grad_norm.item(),
-                        "batch/temperature": self.criterion.logit_scale.exp().item(),  # type: ignore
-                    }
-                )
 
         avg_loss = total_loss / n_batches
         avg_metrics = {k: v / n_batches for k, v in accumulated_metrics.items()}
@@ -201,19 +202,36 @@ class Trainer:
         for epoch in range(self.start_epoch, epochs + 1):
             train_loss = self.train_one_epoch(train_loader, epoch)
             val_loss = self.validate_one_epoch(val_loader, epoch)
-            if self.scheduler is not None:
-                self.scheduler.step()
 
             print(
                 f"Epoch {epoch}: Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}"
             )
+
+            if epoch == epochs:
+                full_metrics = full_retrieval_eval(
+                    model=self.model,
+                    dataloader=val_loader,
+                    device=self.device,
+                    use_fp16=self.use_fp16,
+                )
+                print(
+                    f"  [Full Retrieval] "
+                    f"i2t  R@1: {full_metrics.get('full/i2t_R@1', 0):.4f}  "
+                    f"R@5: {full_metrics.get('full/i2t_R@5', 0):.4f}  "
+                    f"R@10: {full_metrics.get('full/i2t_R@10', 0):.4f}  |  "
+                    f"t2i  R@1: {full_metrics.get('full/t2i_R@1', 0):.4f}  "
+                    f"R@5: {full_metrics.get('full/t2i_R@5', 0):.4f}  "
+                    f"R@10: {full_metrics.get('full/t2i_R@10', 0):.4f}"
+                )
+                if self.use_wandb:
+                    self.wandb.log({"epoch": epoch, **full_metrics})
 
             is_best = val_loss < best_val_loss
             if is_best:
                 best_val_loss = val_loss
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            config_name = getattr(self.config, "name", "base_config")
+            config_name = getattr(self.config, "name", "baseline_config")
 
             state = {
                 "epoch": epoch,

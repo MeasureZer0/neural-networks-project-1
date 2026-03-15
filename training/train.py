@@ -1,15 +1,17 @@
 import argparse
 import importlib
 import logging
+import math
 
 import torch
+from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader
 
 from datasets.coco_dataset import COCO_Dataset
 from datasets.transforms import TrainTransform, ValTransform
 from models.contrastive_model import ContrastiveModel
 from training.checkpointing import load_checkpoint
-from training.configs.base_config import Config
+from training.configs.baseline_config import Config
 from training.loss import InfoNCELoss
 from training.trainer import Trainer
 
@@ -38,12 +40,26 @@ def get_config(config_name: str) -> Config:
     return Config()
 
 
+def get_cosine_schedule_with_warmup(
+    optimizer: torch.optim.Optimizer, warmup_steps: int, total_steps: int
+) -> LambdaLR:
+    def lr_lambda(current_step: int) -> float:
+        if current_step < warmup_steps:
+            return float(current_step) / max(1, warmup_steps)
+        progress = float(current_step - warmup_steps) / max(
+            1, total_steps - warmup_steps
+        )
+        return max(0.0, 0.5 * (1.0 + math.cos(math.pi * progress)))
+
+    return LambdaLR(optimizer, lr_lambda)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train Contrastive CLIP-like model")
     parser.add_argument(
         "--config",
         type=str,
-        default="base_config",
+        default="baseline_config",
         help="Name of the config file to use",
     )
     parser.add_argument("--resume", type=str, default=None, help="Path to checkpoint")
@@ -61,11 +77,55 @@ def main() -> None:
         embedding_dim=config.embedding_dim,
     ).to(config.device)
 
-    criterion = InfoNCELoss().to(config.device)
+    # InfoNCELoss
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=config.lr)
+    criterion = InfoNCELoss(
+        learn_temperature=getattr(config, "learn_temperature", True),
+        init_temperature=getattr(config, "init_temperature", 0.07),
+    ).to(config.device)
 
-    scheduler = None  # Can add StepLR or CosineAnnealingLR
+    # Optimizer
+
+    decay, no_decay = [], []
+
+    for _, name, param in [
+        *((model, n, p) for n, p in model.named_parameters()),
+        *((criterion, n, p) for n, p in criterion.named_parameters()),
+    ]:
+        if not param.requires_grad:
+            continue
+        if param.ndim <= 1 or name.endswith(".bias"):
+            no_decay.append(param)
+        else:
+            decay.append(param)
+
+    optimizer = torch.optim.AdamW(
+        [
+            {"params": decay, "weight_decay": config.weight_decay},
+            {"params": no_decay, "weight_decay": 0.0},
+        ],
+        lr=config.lr,
+        betas=(
+            getattr(config, "adam_beta1", 0.9),
+            getattr(config, "adam_beta2", 0.98),
+        ),
+        eps=getattr(config, "adam_eps", 1e-6),
+    )
+
+    # LR Schedule
+
+    scheduler = None
+    if getattr(config, "use_cosine_schedule", False):
+        estimated_steps_per_epoch = 118_000 // config.batch_size
+        total_steps = estimated_steps_per_epoch * config.epochs
+        warmup_steps = estimated_steps_per_epoch * getattr(config, "warmup_epochs", 5)
+        scheduler = get_cosine_schedule_with_warmup(
+            optimizer, warmup_steps, total_steps
+        )
+        print(
+            f"Scheduler: cosine with {getattr(config, 'warmup_epochs', 5)} warmup epochs "
+            f"({warmup_steps} steps) / {total_steps} total steps"
+        )
 
     start_epoch = 1
     if args.resume:
