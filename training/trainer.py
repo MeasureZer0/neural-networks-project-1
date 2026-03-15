@@ -212,6 +212,7 @@ class Trainer:
                     model=self.model,
                     dataloader=val_loader,
                     device=self.device,
+                    ks=[1, 5, 10],
                     use_fp16=self.use_fp16,
                 )
                 print(
