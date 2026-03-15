@@ -59,7 +59,7 @@ def main() -> None:
     parser.add_argument(
         "--config",
         type=str,
-        default="base_config",
+        default="baseline_config",
         help="Name of the config file to use",
     )
     parser.add_argument("--resume", type=str, default=None, help="Path to checkpoint")
