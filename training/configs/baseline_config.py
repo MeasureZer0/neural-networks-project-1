@@ -39,8 +39,8 @@ class Config:
     embedding_dim: int = 512
 
     # Training
-    epochs: int = 30
-    batch_size: int = 32
+    epochs: int = 10
+    batch_size: int = 256
     use_fp16: bool = True
     grad_clip_norm: float = 1.0
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
