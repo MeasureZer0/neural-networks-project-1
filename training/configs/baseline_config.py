@@ -17,14 +17,14 @@ class Config:
     use_ccrop: bool = True
 
     # Optimizer
-    lr: float = 5e-4
-    weight_decay: float = 0.2
+    lr: float = 1e-4
+    weight_decay: float = 0.05
     adam_beta1: float = 0.9
     adam_beta2: float = 0.98
     adam_eps: float = 1e-6
 
     # LR Schedule — warmup + cosine decay
-    warmup_epochs: int = 5
+    warmup_epochs: int = 1
     use_cosine_schedule: bool = True
 
     # Tokenizer
@@ -44,6 +44,7 @@ class Config:
     use_fp16: bool = True
     grad_clip_norm: float = 1.0
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    temperature: float = 0.07
 
     # Paths
     data_dir: Path = Path("data/coco")

@@ -112,8 +112,11 @@ class Trainer:
 
             if self.use_fp16:
                 self.scaler.unscale_(self.optimizer)
+            all_params = list(self.model.parameters()) + list(
+                self.criterion.parameters()
+            )
             grad_norm = torch.nn.utils.clip_grad_norm_(
-                self.model.parameters(), max_norm=1.0
+                all_params, max_norm=self.config.grad_clip_norm
             )
             self.scaler.step(self.optimizer)
             self.scaler.update()
@@ -212,6 +215,7 @@ class Trainer:
                     model=self.model,
                     dataloader=val_loader,
                     device=self.device,
+                    ks=[1, 5, 10],
                     use_fp16=self.use_fp16,
                 )
                 print(

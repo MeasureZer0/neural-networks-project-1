@@ -9,8 +9,8 @@ from tqdm import tqdm
 def mean_reciprocal_rank(logits: torch.Tensor) -> float:
     B = logits.shape[0]
     targets = torch.arange(B, device=logits.device)
-    sorted_indicies = logits.argsort(dim=-1, descending=True)
-    ranks = (sorted_indicies == targets.unsqueeze(1)).nonzero()[:, 1] + 1
+    sorted_indices = logits.argsort(dim=-1, descending=True)
+    ranks = (sorted_indices == targets.unsqueeze(1)).nonzero()[:, 1] + 1
     return (1.0 / ranks.float()).mean().item()
 
 
@@ -31,12 +31,12 @@ def similarity_stats(
 def recall_at_k(logits: torch.Tensor, ks: List[int]) -> Dict[str, float]:
     B = logits.shape[0]
     targets = torch.arange(B, device=logits.device)
-    sorted_indicies = logits.argsort(dim=-1, descending=True)
+    sorted_indices = logits.argsort(dim=-1, descending=True)
 
     results = {}
     for k in ks:
         k_clamped = min(k, B)
-        topk = sorted_indicies[:, :k_clamped]
+        topk = sorted_indices[:, :k_clamped]
         hits = (topk == targets.unsqueeze(1)).any(dim=1).float()
         results[f"R@{k}"] = hits.mean().item()
     return results
