@@ -50,10 +50,11 @@ class Trainer:
             import wandb
 
             self.wandb = wandb
-            self.wandb.init(
-                project=getattr(config, "wandb_project", "clip-training"),
-                config=vars(config),
-            )
+            if self.wandb.run is None:
+                self.wandb.init(
+                    project=getattr(config, "wandb_project", "clip-training"),
+                    config=vars(config),
+                )
 
     def _batch_to_device(
         self, batch: Dict[str, torch.Tensor | Dict]

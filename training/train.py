@@ -40,6 +40,42 @@ def get_config(config_name: str) -> Config:
     return Config()
 
 
+def apply_sweep_config(config: Config) -> Config:
+    import wandb
+
+    if wandb.run is None:
+        return config
+
+    sweep = wandb.config
+
+    for field in [
+        "lr",
+        "weight_decay",
+        "adam_beta1",
+        "adam_beta2",
+        "adam_eps",
+        "warmup_epochs",
+        "embedding_dim",
+        "grad_clip_norm",
+        "learn_temperature",
+        "init_temperature",
+        "use_ccrop",
+    ]:
+        if field in sweep:
+            setattr(config, field, sweep[field])
+
+    if "crop_scale_min" in sweep:
+        config.crop_scale = (sweep["crop_scale_min"], 1.0)
+
+    if "hflip_p" in sweep:
+        config.hflip_p = sweep["hflip_p"] or None
+
+    if "use_jitter" in sweep:
+        config.jitter_params = (0.4, 0.4, 0.2, 0.1) if sweep["use_jitter"] else None
+
+    return config
+
+
 def get_cosine_schedule_with_warmup(
     optimizer: torch.optim.Optimizer, warmup_steps: int, total_steps: int
 ) -> LambdaLR:
@@ -66,6 +102,7 @@ def main() -> None:
     args = parser.parse_args()
 
     config = get_config(args.config)
+    config = apply_sweep_config(config)
     print(f"Using config: {config.name}")
 
     # Conceptual setup
