@@ -35,7 +35,7 @@ class Config:
     text_encoder_type: str = "clip"
     image_encoder_type: str = "vit"
     text_encoder_freeze: bool = False
-    image_encoder_freeze: bool = False
+    image_encoder_freeze: bool = True
     embedding_dim: int = 512
 
     # Training
