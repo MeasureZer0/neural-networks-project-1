@@ -19,14 +19,6 @@ from training.metrics import (
 )
 
 
-def _mean_reciprocal_rank(logits: torch.Tensor) -> torch.Tensor:
-    # [B, B]
-    targets = torch.arange(logits.shape[0], device=logits.device)
-    sorted_indices = logits.argsort(dim=-1, descending=True)
-    ranks = (sorted_indices == targets.unsqueeze(1)).nonzero()[:, 1] + 1
-    return (1.0 / ranks.float()).mean()
-
-
 class Trainer:
     def __init__(
         self,
@@ -58,10 +50,11 @@ class Trainer:
             import wandb
 
             self.wandb = wandb
-            self.wandb.init(
-                project=getattr(config, "wandb_project", "clip-training"),
-                config=vars(config),
-            )
+            if self.wandb.run is None:
+                self.wandb.init(
+                    project=getattr(config, "wandb_project", "clip-training"),
+                    config=vars(config),
+                )
 
     def _batch_to_device(
         self, batch: Dict[str, torch.Tensor | Dict]

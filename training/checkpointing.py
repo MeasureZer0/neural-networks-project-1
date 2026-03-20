@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import LRScheduler
 def save_checkpoint(
     state: dict[str, Any],
     checkpoint_dir: Union[str, os.PathLike],
-    config_name: str = "base_config",
+    config_name: str = "baseline_config",
     filename: Optional[str] = None,
     is_best: bool = False,
 ) -> None:
