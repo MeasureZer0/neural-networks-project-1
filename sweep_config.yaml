@@ -78,9 +78,6 @@ parameters:
   epochs:
     value: 5
 
-  learn_temperature:
-    values: true
-
   batch_size:
     value: 256
 
