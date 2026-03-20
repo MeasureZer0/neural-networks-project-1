@@ -23,8 +23,8 @@ class ImageEncoder(nn.Module):
             model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
             self.feature_dim = model.fc.in_features
             model.fc = nn.Identity()  # type: ignore
-        elif model_type == "resnet50":
-            model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
+        elif model_type == "resnet34":
+            model = models.resnet50(weights=models.ResNet34_Weights.IMAGENET1K_V1)
             self.feature_dim = model.fc.in_features
             model.fc = nn.Identity()  # type: ignore
         elif model_type == "vit":
