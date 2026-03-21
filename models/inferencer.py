@@ -1,5 +1,6 @@
+import pathlib
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 import torchvision.io as io
@@ -7,7 +8,6 @@ from transformers import AutoTokenizer
 
 from datasets.transforms import ValTransform
 from models.contrastive_model import ContrastiveModel
-from training.checkpointing import load_checkpoint
 
 
 class ModelInferencer:
@@ -19,8 +19,16 @@ class ModelInferencer:
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.tokenizer)
         self.transform = ValTransform(use_ccrop=self.config.use_ccrop)
 
-    def _load(self, checkpoint_path: Union[str, Path]) -> None:
-        raw = torch.load(str(checkpoint_path), map_location="cpu")
+    def _load(
+        self, checkpoint_path: Union[str, Path]
+    ) -> Tuple["ContrastiveModel", Any]:
+        checkpoint_path = Path(checkpoint_path)
+
+        with torch.serialization.safe_globals([pathlib.WindowsPath]):
+            raw = torch.load(
+                str(checkpoint_path), map_location="cpu", weights_only=False
+            )
+
         config = raw["config"]
 
         model = ContrastiveModel(
@@ -31,9 +39,12 @@ class ModelInferencer:
             embedding_dim=config.embedding_dim,
         )
 
-        epoch, val_loss = load_checkpoint(checkpoint_path=checkpoint_path, model=model)
+        model.load_state_dict(raw["model_state_dict"])
         model.to(self.device)
         model.eval()
+
+        epoch = raw.get("epoch", -1)
+        val_loss = raw.get("val_loss", float("nan"))
 
         print(f"Załadowano: {config.name} | epoch {epoch} | val_loss {val_loss:.4f}")
         return model, config
