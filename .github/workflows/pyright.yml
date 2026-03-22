@@ -27,6 +27,8 @@ jobs:
             - name: Install dependencies
               # uv will create a .venv if it doesn't exist
               run: uv sync --frozen
+              env:
+                UV_LINK_MODE: "copy"
 
             - name: Add .venv/bin to PATH
               # This makes the python interpreter and installed libs visible to pyright
