@@ -1,7 +1,8 @@
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+import torch.nn.functional as F
 import torchvision.io as io
 from transformers import AutoTokenizer
 
@@ -19,8 +20,14 @@ class ModelInferencer:
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.tokenizer)
         self.transform = ValTransform(use_ccrop=self.config.use_ccrop)
 
-    def _load(self, checkpoint_path: Union[str, Path]) -> None:
-        raw = torch.load(str(checkpoint_path), map_location="cpu")
+    def _load(
+        self, checkpoint_path: Union[str, Path]
+    ) -> Tuple["ContrastiveModel", dict]:
+        checkpoint_path = Path(checkpoint_path)
+        with torch.serialization.safe_globals([pathlib.WindowsPath]):
+            raw = torch.load(
+                str(checkpoint_path), map_location="cpu", weights_only=False
+            )
         config = raw["config"]
 
         model = ContrastiveModel(
@@ -31,15 +38,25 @@ class ModelInferencer:
             embedding_dim=config.embedding_dim,
         )
 
-        epoch, val_loss = load_checkpoint(checkpoint_path=checkpoint_path, model=model)
+        model.load_state_dict(raw["model_state_dict"])
         model.to(self.device)
         model.eval()
+
+        epoch = raw.get("epoch", -1)
+        val_loss = raw.get("val_loss", float("nan"))
 
         print(f"Załadowano: {config.name} | epoch {epoch} | val_loss {val_loss:.4f}")
         return model, config
 
     def _preprocess_image(self, path: Union[str, Path]) -> torch.Tensor:
         image = io.read_image(str(path)).float() / 255.0
+        return self._prepare_image_tensor(image)
+
+    def _prepare_image_tensor(self, image: torch.Tensor) -> torch.Tensor:
+        if not image.is_floating_point():
+            image = image.float() / 255.0
+        elif image.max() > 1.0:
+            image = image / 255.0
         if image.shape[0] == 1:
             image = image.repeat(3, 1, 1)
         elif image.shape[0] == 4:
@@ -79,6 +96,25 @@ class ModelInferencer:
         return torch.cat(all_embeds, dim=0)  # [N, D]
 
     @torch.no_grad()
+    def embed_image_tensors(
+        self, images: Union[torch.Tensor, List[torch.Tensor]], batch_size: int = 64
+    ) -> torch.Tensor:
+        if isinstance(images, torch.Tensor):
+            images = [img for img in images]
+
+        all_embeds = []
+        for i in range(0, len(images), batch_size):
+            batch = torch.stack(
+                [
+                    self._prepare_image_tensor(image)
+                    for image in images[i : i + batch_size]
+                ]
+            ).to(self.device)
+            all_embeds.append(self.model.encode_image(batch).cpu())
+
+        return torch.cat(all_embeds, dim=0)  # [N, D]
+
+    @torch.no_grad()
     def embed_text(
         self,
         texts: Union[str, List[str]],
@@ -93,3 +129,23 @@ class ModelInferencer:
             all_embeds.append(self.model.encode_text(tokens).cpu())
 
         return torch.cat(all_embeds, dim=0)  # [N, D]
+
+    @torch.no_grad()
+    def classify_zero_shot(
+        self,
+        images: Union[torch.Tensor, List[torch.Tensor]],
+        class_prompts: List[str],
+        image_batch_size: int = 64,
+        text_batch_size: int = 512,
+        normalize: bool = True,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        image_embeds = self.embed_image_tensors(images, batch_size=image_batch_size)
+        text_embeds = self.embed_text(class_prompts, batch_size=text_batch_size)
+
+        if normalize:
+            image_embeds = F.normalize(image_embeds, dim=-1)
+            text_embeds = F.normalize(text_embeds, dim=-1)
+
+        logits = image_embeds @ text_embeds.T
+        predictions = logits.argmax(dim=-1)
+        return predictions, logits

@@ -3,6 +3,7 @@ __pycache__/
 wandb/
 data/
 logs/
+checkpoints/
 *.log
 *.out
 sbatch_*
