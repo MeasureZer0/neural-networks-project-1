@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import torchvision.io as io
@@ -8,6 +8,7 @@ from transformers import AutoTokenizer
 from datasets.transforms import ValTransform
 from models.contrastive_model import ContrastiveModel
 from training.checkpointing import load_checkpoint
+from training.configs.baseline_config import Config
 
 
 class ModelInferencer:
@@ -19,7 +20,9 @@ class ModelInferencer:
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.tokenizer)
         self.transform = ValTransform(use_ccrop=self.config.use_ccrop)
 
-    def _load(self, checkpoint_path: Union[str, Path]) -> None:
+    def _load(
+        self, checkpoint_path: Union[str, Path]
+    ) -> Tuple[ContrastiveModel, Config]:
         raw = torch.load(str(checkpoint_path), map_location="cpu")
         config = raw["config"]
 

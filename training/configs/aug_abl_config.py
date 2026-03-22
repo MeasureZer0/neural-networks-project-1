@@ -9,6 +9,6 @@ class Config(Baseline):
     """Does heavier augmentation help or hurt retrieval?"""
 
     name: str = "abl_augmentation"
-    crop_scale: Tuple[float, float] = (0.5, 1.0)
-    hflip_p: float = 0.5
-    jitter_params: Tuple[float, float, float, float] = (0.4, 0.4, 0.2, 0.1)
+    crop_scale: Tuple[float, float] | None = (0.5, 1.0)
+    hflip_p: float | None = 0.5
+    jitter_params: Tuple[float, float, float, float] | None = (0.4, 0.4, 0.2, 0.1)

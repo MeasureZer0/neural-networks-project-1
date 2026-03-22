@@ -1,9 +1,10 @@
 from typing import Dict, List
 
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+
+from models.contrastive_model import ContrastiveModel
 
 
 def mean_reciprocal_rank(logits: torch.Tensor) -> float:
@@ -44,7 +45,7 @@ def recall_at_k(logits: torch.Tensor, ks: List[int]) -> Dict[str, float]:
 
 @torch.no_grad()
 def full_retrieval_eval(
-    model: nn.Module,
+    model: ContrastiveModel,
     dataloader: DataLoader,
     device: str,
     ks: List[int],
