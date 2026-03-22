@@ -13,8 +13,6 @@ from transformers import AutoTokenizer
 from datasets.transforms import TrainTransform
 
 logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
-
-logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 
 
