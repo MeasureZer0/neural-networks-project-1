@@ -10,7 +10,7 @@ class Config(Baseline):
     name: str = "final_model"
     # Optimizer
     lr: int = 3e-5
-    weight_decay: float = 5e-4
+    weight_decay: float = 3e-4
     adam_beta1: float = 0.95
     adam_beta2: float = 0.99
     adam_eps: float = 1e-7
