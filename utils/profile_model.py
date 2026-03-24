@@ -26,7 +26,7 @@ def profile_encoders(
         print(f"  IMAGE ENCODERS — {precision}")
         print(f"{'#' * 55}")
 
-        for model_type in ["resnet18", "resnet50", "vit"]:
+        for model_type in ["resnet18", "resnet34", "vit"]:
             model = ImageEncoder(model_type=model_type)
             model.eval()
 
