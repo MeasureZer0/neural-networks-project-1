@@ -1,11 +1,13 @@
 program: training/train.py
 command:
   - ${env}
+  - uv
+  - run
   - python
-  - ${program}
+  - -m
+  - training.train
   - --config
   - baseline_config
-  - ${args}
 
 method: bayes
 metric:

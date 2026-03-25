@@ -60,6 +60,8 @@ def apply_sweep_config(config: Config) -> Config:
         "learn_temperature",
         "init_temperature",
         "use_ccrop",
+        "epochs",
+        "batch_size",
     ]:
         if field in sweep:
             setattr(config, field, sweep[field])
