@@ -1,6 +1,6 @@
 import pathlib
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torchvision.io as io
@@ -77,10 +77,10 @@ class ModelInferencer:
     @torch.no_grad()
     def embed_image(
         self,
-        paths: Union[str, Path, List[Union[str, Path]]],
+        paths: str | Path | Sequence[str | Path],
         batch_size: int = 64,
     ) -> torch.Tensor:
-        if not isinstance(paths, list):
+        if isinstance(paths, (str, Path)):
             paths = [paths]
 
         all_embeds = []
