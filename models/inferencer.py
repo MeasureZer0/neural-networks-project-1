@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
+import torch.nn.functional as F
 import torchvision.io as io
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
@@ -133,6 +134,26 @@ class ModelInferencer:
             all_embeds.append(self.model.encode_text(tokens).cpu())
 
         return torch.cat(all_embeds, dim=0)  # [N, D]
+
+    @torch.no_grad()
+    def classify_zero_shot(
+        self,
+        images: Union[torch.Tensor, List[torch.Tensor]],
+        class_prompts: List[str],
+        image_batch_size: int = 64,
+        text_batch_size: int = 512,
+        normalize: bool = True,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        image_embeds = self.embed_image_tensors(images, batch_size=image_batch_size)
+        text_embeds = self.embed_text(class_prompts, batch_size=text_batch_size)
+
+        if normalize:
+            image_embeds = F.normalize(image_embeds, dim=-1)
+            text_embeds = F.normalize(text_embeds, dim=-1)
+
+        logits = image_embeds @ text_embeds.T
+        predictions = logits.argmax(dim=-1)
+        return predictions, logits
 
     @torch.no_grad()
     def build_image_index(
