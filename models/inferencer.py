@@ -8,6 +8,7 @@ from transformers import AutoTokenizer
 
 from datasets.transforms import ValTransform
 from models.contrastive_model import ContrastiveModel
+from models.retrieval import EmbeddingIndex
 
 
 class ModelInferencer:
@@ -104,3 +105,47 @@ class ModelInferencer:
             all_embeds.append(self.model.encode_text(tokens).cpu())
 
         return torch.cat(all_embeds, dim=0)  # [N, D]
+
+    @torch.no_grad()
+    def build_image_index(
+        self,
+        image_paths: list[Path],
+        save_path: Path | None = None,
+        batch_size: int = 64,
+    ) -> EmbeddingIndex:
+        embeddings = self.embed_image(image_paths, batch_size=batch_size)
+        index = EmbeddingIndex(embedding_dim=embeddings.shape[1])
+        index.add(embeddings, metadata=image_paths)
+        if save_path:
+            index.save(save_path)
+        return index
+
+    @torch.no_grad()
+    def build_text_index(
+        self,
+        captions: list[str],
+        save_path: Path | None = None,
+        batch_size: int = 512,
+    ) -> EmbeddingIndex:
+        embeddings = self.embed_text(captions, batch_size=batch_size)
+        index = EmbeddingIndex(embedding_dim=embeddings.shape[1])
+        index.add(embeddings, metadata=captions)
+        if save_path:
+            index.save(save_path)
+        return index
+
+    @torch.no_grad()
+    def text_to_image(
+        self, queries: list[str], image_index: EmbeddingIndex, k: int = 5
+    ) -> list[list[str]]:
+        embeddings = self.embed_text(queries)
+        _, _, meta = image_index.search(embeddings, k=k)
+        return meta
+
+    @torch.no_grad()
+    def image_to_text(
+        self, image_paths: list[Path], text_index: EmbeddingIndex, k: int = 5
+    ) -> list[list[str]]:
+        embeddings = self.embed_image(image_paths)
+        _, _, meta = text_index.search(embeddings, k=k)
+        return meta
