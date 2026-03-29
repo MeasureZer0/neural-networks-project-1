@@ -87,7 +87,7 @@ def profile_contrastive_models(batch: Dict, device: torch.device) -> None:
         {
             "name": "ABL-1: ResNet50 + CLIP",
             "text_encoder_type": "clip",
-            "image_encoder_type": "resnet50",
+            "image_encoder_type": "resnet34",
             "text_encoder_freeze": False,
             "image_encoder_freeze": False,
         },
