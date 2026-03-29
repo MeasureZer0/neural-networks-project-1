@@ -1,8 +1,12 @@
-from typing import Dict, Union
+from typing import Any, Dict, Tuple, Union, cast
 
 import torch
 import torch.nn as nn
 from fvcore.nn import FlopCountAnalysis
+
+TensorDict = Dict[str, torch.Tensor]
+ModelInput = Union[torch.Tensor, TensorDict]
+ForwardInput = Tuple[torch.Tensor, TensorDict]
 
 
 def model_stats(model: nn.Module, use_fp16: bool = False) -> Dict[str, float]:
@@ -22,15 +26,13 @@ def model_stats(model: nn.Module, use_fp16: bool = False) -> Dict[str, float]:
     }
 
 
-def flop_stats(
-    model: nn.Module, sample_input: Union[torch.Tensor, Dict[str, torch.Tensor]]
-) -> Dict[str, float]:
+def flop_stats(model: nn.Module, sample_input: ModelInput) -> Dict[str, float]:
     model.eval()
     if isinstance(sample_input, torch.Tensor):
         inputs = (sample_input[:1],)
     else:
         inputs = ({k: v[:1] for k, v in sample_input.items()},)
-    flops = FlopCountAnalysis(model, inputs)
+    flops = FlopCountAnalysis(model, cast(Any, inputs))
     flops.unsupported_ops_warnings(False)
     flops.uncalled_modules_warnings(False)
 
@@ -40,7 +42,7 @@ def flop_stats(
 def vram_stats(
     model: nn.Module,
     device: torch.device,
-    sample_input: Union[torch.Tensor, Dict[str, torch.Tensor]],
+    sample_input: Union[ModelInput, ForwardInput],
     use_fp16: bool = False,
 ) -> Dict[str, float]:
     if device.type != "cuda":
@@ -59,11 +61,10 @@ def vram_stats(
     with torch.no_grad():
         with torch.cuda.amp.autocast(enabled=use_fp16):
             if isinstance(sample_input, tuple):
-                args = tuple(
-                    x.to(device)
-                    if isinstance(x, torch.Tensor)
-                    else {k: v[:1].to(device) for k, v in x.items()}
-                    for x in sample_input
+                image, token_dict = sample_input
+                args: ForwardInput = (
+                    image[:1].to(device),
+                    {k: v[:1].to(device) for k, v in token_dict.items()},
                 )
                 _ = model(*args)
             elif isinstance(sample_input, torch.Tensor):

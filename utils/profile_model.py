@@ -26,7 +26,7 @@ def profile_encoders(
         print(f"  IMAGE ENCODERS — {precision}")
         print(f"{'#' * 55}")
 
-        for model_type in ["resnet18", "resnet50", "vit"]:
+        for model_type in ["resnet18", "resnet34", "vit"]:
             model = ImageEncoder(model_type=model_type)
             model.eval()
 
@@ -87,7 +87,7 @@ def profile_contrastive_models(batch: Dict, device: torch.device) -> None:
         {
             "name": "ABL-1: ResNet50 + CLIP",
             "text_encoder_type": "clip",
-            "image_encoder_type": "resnet50",
+            "image_encoder_type": "resnet34",
             "text_encoder_freeze": False,
             "image_encoder_freeze": False,
         },
