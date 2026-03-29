@@ -25,10 +25,12 @@ class Flickr30k_Dataset(Dataset):
         img_transform: Optional[Callable] = None,
         tokenizer: str = "openai/clip-vit-base-patch32",
         tokenizer_maxlength: int = 77,
+        return_meta: bool = False,
     ) -> None:
         self.img_transform = img_transform
         self.tokenizer_maxlength = tokenizer_maxlength
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer)
+        self.return_meta = return_meta
 
         image_captions: dict[str, List[str]] = defaultdict(list)
         with open(captions_file, "r") as file:
@@ -72,7 +74,12 @@ class Flickr30k_Dataset(Dataset):
             if k in ("input_ids", "attention_mask")
         }
 
-        return {"images": image, "tokens": tokens}
+        result = {"images": image, "tokens": tokens}
+        if self.return_meta:
+            result["path"] = str(img_path)
+            result["caption"] = caption
+
+        return result
 
 
 BASE_DIR = Path(__file__).parent.resolve()
