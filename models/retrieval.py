@@ -1,3 +1,4 @@
+import pickle
 from pathlib import Path
 
 import faiss
@@ -28,10 +29,17 @@ class EmbeddingIndex:
 
     def save(self, path: str | Path) -> None:
         faiss.write_index(self.index, str(path))
+
+        with open(path.with_suffix(".pkl"), "wb") as f:
+            pickle.dump(self.metadata, f)
         print(f"Index saved: {path}  ({self.index.ntotal} vectors)")
 
     def load(self, path: str | Path) -> None:
         self.index = faiss.read_index(str(path))
+
+        with open(path.with_suffix(".pkl"), "rb") as f:
+            self.metadata = pickle.load(f)
+
         print(f"Index loaded: {path}  ({self.index.ntotal} vectors)")
 
     def __len__(self) -> int:
