@@ -1,4 +1,5 @@
-import json
+import ast
+import csv
 import logging
 import random
 from collections import defaultdict
@@ -16,11 +17,11 @@ logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
 
 
-class COCO_Dataset(Dataset):
+class Flickr30k_Dataset(Dataset):
     def __init__(
         self,
         image_dir: Path,
-        annotation_file: Path,
+        captions_file: Path,
         img_transform: Optional[Callable] = None,
         tokenizer: str = "openai/clip-vit-base-patch32",
         tokenizer_maxlength: int = 77,
@@ -28,19 +29,18 @@ class COCO_Dataset(Dataset):
         self.img_transform = img_transform
         self.tokenizer_maxlength = tokenizer_maxlength
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer)
-        with open(annotation_file, "r") as file:
-            dataset = json.load(file)
-        id_to_file = {img["id"]: img["file_name"] for img in dataset["images"]}
 
-        image_captions: dict[int, List[str]] = defaultdict(list)
-        for ann in dataset["annotations"]:
-            image_captions[ann["image_id"]].append(ann["caption"])
+        image_captions: dict[str, List[str]] = defaultdict(list)
+        with open(captions_file, "r") as file:
+            dataset = csv.DictReader(file)
+            for row in dataset:
+                img_name = row["filename"]
+                captions_list = ast.literal_eval(row["raw"])
+                image_captions[img_name].extend(captions_list)
 
         self.samples: List[Tuple[Path, List[str]]] = []
-        for image_id, captions in image_captions.items():
-            file_name = id_to_file[image_id]
-            img_path = image_dir / file_name
-
+        for img_name, captions in image_captions.items():
+            img_path = image_dir / img_name
             self.samples.append((img_path, captions))
 
     def __len__(self) -> int:
@@ -76,12 +76,12 @@ class COCO_Dataset(Dataset):
 
 
 BASE_DIR = Path(__file__).parent.resolve()
-DATA_DIR = (BASE_DIR / ".." / "data" / "coco").resolve()
+DATA_DIR = (BASE_DIR / ".." / "data" / "flickr30k").resolve()
 
 if __name__ == "__main__":
-    dataset = COCO_Dataset(
-        image_dir=DATA_DIR / "val2017",
-        annotation_file=DATA_DIR / "annotations" / "captions_val2017.json",
+    dataset = Flickr30k_Dataset(
+        image_dir=DATA_DIR / "flickr30k-images",
+        captions_file=DATA_DIR / "flickr_annotations_30k.csv",
         img_transform=TrainTransform(),
     )
     dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=4)
