@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 import torchvision.io as io
+from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
 
 from datasets.transforms import ValTransform
@@ -133,6 +134,25 @@ class ModelInferencer:
         if save_path:
             index.save(save_path)
         return index
+
+    @torch.no_grad()
+    def build_index_from_dataloader(
+        self,
+        dataloader: DataLoader,
+        image_save_path: Path | None = None,
+        text_save_path: Path | None = None,
+    ) -> tuple[EmbeddingIndex, EmbeddingIndex]:
+        all_image_paths = []
+        all_captions = []
+
+        for batch in dataloader:
+            all_image_paths.extend(batch["path"])
+            all_captions.extend(batch["caption"])
+
+        image_index = self.build_image_index(all_image_paths, save_path=image_save_path)
+        text_index = self.build_text_index(all_captions, save_path=text_save_path)
+
+        return image_index, text_index
 
     @torch.no_grad()
     def text_to_image(
