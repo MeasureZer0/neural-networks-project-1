@@ -1,6 +1,6 @@
 import pathlib
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import torchvision.io as io
@@ -8,6 +8,7 @@ from transformers import AutoTokenizer
 
 from datasets.transforms import ValTransform
 from models.contrastive_model import ContrastiveModel
+from training.configs.baseline_config import Config
 
 
 class ModelInferencer:
@@ -21,7 +22,7 @@ class ModelInferencer:
 
     def _load(
         self, checkpoint_path: Union[str, Path]
-    ) -> Tuple["ContrastiveModel", Any]:
+    ) -> Tuple["ContrastiveModel", Config]:
         checkpoint_path = Path(checkpoint_path)
 
         with torch.serialization.safe_globals([pathlib.WindowsPath]):
