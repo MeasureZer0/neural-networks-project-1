@@ -28,6 +28,7 @@ class EmbeddingExplorerApp:
         self._emb_a: Any | None = None
         self._emb_b: Any | None = None
         self._photo_refs: list = []  # prevent GC
+        self._interp_active = False
 
         self.setup_ui()
         self.load_model_async()
@@ -49,7 +50,7 @@ class EmbeddingExplorerApp:
         self.upload_button = tk.Button(
             top_frame,
             text="Search by Image",
-            command=self.upload_and_search_image,  # type: ignore
+            command=self.upload_and_search_image,
         )
         self.upload_button.pack(side="left", padx=5)
 
@@ -81,6 +82,29 @@ class EmbeddingExplorerApp:
 
         self.canvas.pack(side="left", fill="both", expand=True)
         self.scrollbar.pack(side="right", fill="y")
+
+        # Interpolation controls
+        interp_frame = tk.Frame(self.root)
+        interp_frame.pack(fill="x", padx=10, pady=5)
+
+        self.entry_a = tk.Entry(interp_frame, width=30)
+        self.entry_a.insert(0, "Enter text A")
+        self.entry_a.pack(side="left", padx=5)
+
+        self.entry_b = tk.Entry(interp_frame, width=30)
+        self.entry_b.insert(0, "Enter text B")
+        self.entry_b.pack(side="left", padx=5)
+
+        self.slider = tk.Scale(
+            interp_frame,
+            from_=0,
+            to=1,
+            resolution=0.05,
+            orient="horizontal",
+            label="Interpolation",
+            command=self.on_slider_change,
+        )
+        self.slider.pack(side="left", fill="x", expand=True)
 
     def load_model_async(self) -> None:
         def worker() -> None:
@@ -198,6 +222,29 @@ class EmbeddingExplorerApp:
                 self.search_similar_async(file_path)
         except Exception as e:
             self.update_status(f"Upload Image Error: {str(e)}")
+
+    def on_slider_change(self, val: str) -> None:
+        if not self.inferencer or not self.image_index:
+            return
+
+        def worker() -> None:
+            try:
+                assert self.inferencer is not None
+                assert self.image_index is not None
+
+                alpha = float(val)
+                if self._emb_a is None or self._emb_b is None:
+                    self._emb_a = self.inferencer.embed_text(self.entry_a.get())
+                    self._emb_b = self.inferencer.embed_text(self.entry_b.get())
+
+                emb = (1 - alpha) * self._emb_a + alpha * self._emb_b
+
+                scores, _, metadata = self.image_index.search(emb, k=10)
+                self.root.after(0, lambda: self.display_results(metadata, scores))
+            except Exception as e:
+                self.update_status(f"Interpolation error: {e}")
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def update_status(self, text: str) -> None:
         self.root.after(0, lambda: self.status_label.config(text=text))
