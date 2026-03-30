@@ -168,6 +168,8 @@ class EmbeddingExplorerApp:
         for widget in self.scroll_frame.winfo_children():
             widget.destroy()
 
+        self._photo_refs.clear()  # Keep reference to avoid GC
+
         for i, (m, score) in enumerate(zip(metadata, scores[0], strict=True)):
             img_path = m.get("file_path")
             if not img_path or not os.path.exists(img_path):
@@ -177,6 +179,7 @@ class EmbeddingExplorerApp:
                 img = Image.open(img_path)
                 img.thumbnail((200, 200))
                 photo = ImageTk.PhotoImage(img)
+                self._photo_refs.append(photo)  # Keep reference to avoid GC
 
                 frame = tk.Frame(
                     self.scroll_frame, bd=2, relief="groove", padx=5, pady=5
@@ -184,7 +187,6 @@ class EmbeddingExplorerApp:
                 frame.grid(row=i // 3, column=i % 3, padx=10, pady=10)
 
                 label = tk.Label(frame, image=photo)
-                # label.image = photo # Keep reference to avoid garbage collection
                 label.pack()
 
                 tk.Label(frame, text=f"Score: {score:.4f}").pack()
