@@ -88,10 +88,12 @@ class EmbeddingExplorerApp:
         interp_frame.pack(fill="x", padx=10, pady=5)
 
         self.entry_a = tk.Entry(interp_frame, width=30)
+        self.entry_a.bind("<KeyRelease>", self.reset_interpolation)
         self.entry_a.insert(0, "Enter text A")
         self.entry_a.pack(side="left", padx=5)
 
         self.entry_b = tk.Entry(interp_frame, width=30)
+        self.entry_b.bind("<KeyRelease>", self.reset_interpolation)
         self.entry_b.insert(0, "Enter text B")
         self.entry_b.pack(side="left", padx=5)
 
@@ -247,6 +249,11 @@ class EmbeddingExplorerApp:
                 self.update_status(f"Interpolation error: {e}")
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def reset_interpolation(self, event: tk.Event | None = None) -> None:
+        self._emb_a = None
+        self._emb_b = None
+        self.slider.set(0)
 
     def update_status(self, text: str) -> None:
         self.root.after(0, lambda: self.status_label.config(text=text))
