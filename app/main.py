@@ -3,6 +3,7 @@ import sys
 import threading
 import tkinter as tk
 from pathlib import Path
+from tkinter import filedialog
 from typing import Any
 
 from PIL import Image, ImageTk
@@ -23,6 +24,11 @@ class EmbeddingExplorerApp:
         self.image_index: Any | None = None
         self.results: list = []
 
+        # interpolation state
+        self._emb_a: Any | None = None
+        self._emb_b: Any | None = None
+        self._photo_refs: list = []  # prevent GC
+
         self.setup_ui()
         self.load_model_async()
 
@@ -39,6 +45,13 @@ class EmbeddingExplorerApp:
             top_frame, text="Search Caption", command=self.search_async
         )
         self.search_button.pack(side="left", padx=5)
+
+        self.upload_button = tk.Button(
+            top_frame,
+            text="Search by Image",
+            command=self.upload_and_search_image,  # type: ignore
+        )
+        self.upload_button.pack(side="left", padx=5)
 
         self.status_label = tk.Label(
             self.root, text="Initializing...", bd=1, relief="sunken", anchor="w"
@@ -175,6 +188,16 @@ class EmbeddingExplorerApp:
                 self.update_status(f"Similar Search Error: {str(e)}")
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def upload_and_search_image(self) -> None:
+        try:
+            file_path = filedialog.askopenfilename(
+                filetypes=[("Image files", "*.jpg *.jpeg *.png")]
+            )
+            if file_path:
+                self.search_similar_async(file_path)
+        except Exception as e:
+            self.update_status(f"Upload Image Error: {str(e)}")
 
     def update_status(self, text: str) -> None:
         self.root.after(0, lambda: self.status_label.config(text=text))
