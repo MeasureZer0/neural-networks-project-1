@@ -173,9 +173,8 @@ class EmbeddingExplorerApp:
             widget.destroy()
 
         self._photo_refs.clear()  # Keep reference to avoid GC
-
-        for i, (m, score) in enumerate(zip(metadata, scores[0], strict=True)):
-            img_path = m.get("file_path")
+        for i, (m, score) in enumerate(zip(metadata[0], scores[0], strict=False)):
+            img_path = str(m)
             if not img_path or not os.path.exists(img_path):
                 continue
 
