@@ -90,11 +90,13 @@ class EmbeddingExplorerApp:
         self.entry_a = tk.Entry(interp_frame, width=30)
         self.entry_a.bind("<KeyRelease>", self.reset_interpolation)
         self.entry_a.insert(0, "Enter text A")
+        self.entry_a.bind("<FocusIn>", self.clear_entry)
         self.entry_a.pack(side="left", padx=5)
 
         self.entry_b = tk.Entry(interp_frame, width=30)
         self.entry_b.bind("<KeyRelease>", self.reset_interpolation)
         self.entry_b.insert(0, "Enter text B")
+        self.entry_b.bind("<FocusIn>", self.clear_entry)
         self.entry_b.pack(side="left", padx=5)
 
         self.slider = tk.Scale(
@@ -257,6 +259,15 @@ class EmbeddingExplorerApp:
 
     def update_status(self, text: str) -> None:
         self.root.after(0, lambda: self.status_label.config(text=text))
+
+    def clear_entry(self, event: tk.Event) -> None:
+        widget = event.widget
+        if isinstance(widget, tk.Entry) and widget.get() in [
+            "Enter text A",
+            "Enter text B",
+        ]:
+            widget.delete(0, tk.END)
+            widget.config(fg="black")
 
 
 if __name__ == "__main__":
