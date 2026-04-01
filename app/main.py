@@ -77,12 +77,6 @@ class EmbeddingExplorerApp:
             lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")),
         )
 
-        self.canvas.create_window((0, 0), window=self.scroll_frame, anchor="nw")
-        self.canvas.configure(yscrollcommand=self.scrollbar.set)
-
-        self.canvas.pack(side="left", fill="both", expand=True)
-        self.scrollbar.pack(side="right", fill="y")
-
         # Interpolation controls
         interp_frame = tk.Frame(self.root)
         interp_frame.pack(fill="x", padx=10, pady=5)
@@ -109,6 +103,12 @@ class EmbeddingExplorerApp:
             command=self.on_slider_change,
         )
         self.slider.pack(side="left", fill="x", expand=True)
+
+        # Canvas and scrollbar setup
+        self.canvas.create_window((0, 0), window=self.scroll_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
 
     def load_model_async(self) -> None:
         def worker() -> None:
