@@ -1,16 +1,17 @@
 import os
 from datetime import datetime
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import torch
-import torch.nn as nn
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from models.contrastive_model import ContrastiveModel
 from training.checkpointing import save_checkpoint
 from training.configs.baseline_config import Config
+from training.loss import InfoNCELoss
 from training.metrics import (
     full_retrieval_eval,
     mean_reciprocal_rank,
@@ -22,8 +23,8 @@ from training.metrics import (
 class Trainer:
     def __init__(
         self,
-        model: nn.Module,
-        criterion: nn.Module,
+        model: ContrastiveModel,
+        criterion: InfoNCELoss,
         optimizer: Optimizer,
         scheduler: Optional[LRScheduler],
         device: str,
@@ -49,7 +50,7 @@ class Trainer:
         if self.use_wandb:
             import wandb
 
-            self.wandb = wandb
+            self.wandb: Any = wandb
             if self.wandb.run is None:
                 self.wandb.init(
                     project=getattr(config, "wandb_project", "clip-training"),

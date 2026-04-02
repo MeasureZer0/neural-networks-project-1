@@ -1,13 +1,16 @@
 import pathlib
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torchvision.io as io
+from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
 
 from models.contrastive_model import ContrastiveModel
-from torch_datasets.transforms import ValTransform
+from models.retrieval import EmbeddingIndex
+from torch_datasets import ValTransform
+from training.configs.baseline_config import Config
 
 
 class ModelInferencer:
@@ -21,7 +24,7 @@ class ModelInferencer:
 
     def _load(
         self, checkpoint_path: Union[str, Path]
-    ) -> Tuple["ContrastiveModel", Any]:
+    ) -> Tuple["ContrastiveModel", Config]:
         checkpoint_path = Path(checkpoint_path)
 
         with torch.serialization.safe_globals([pathlib.WindowsPath]):
@@ -74,10 +77,10 @@ class ModelInferencer:
     @torch.no_grad()
     def embed_image(
         self,
-        paths: Union[str, Path, List[Union[str, Path]]],
+        paths: str | Path | Sequence[str | Path],
         batch_size: int = 64,
     ) -> torch.Tensor:
-        if not isinstance(paths, list):
+        if isinstance(paths, (str, Path)):
             paths = [paths]
 
         all_embeds = []
@@ -104,3 +107,66 @@ class ModelInferencer:
             all_embeds.append(self.model.encode_text(tokens).cpu())
 
         return torch.cat(all_embeds, dim=0)  # [N, D]
+
+    @torch.no_grad()
+    def build_image_index(
+        self,
+        image_paths: list[Path],
+        save_path: Path | None = None,
+        batch_size: int = 64,
+    ) -> EmbeddingIndex:
+        embeddings = self.embed_image(image_paths, batch_size=batch_size)
+        index = EmbeddingIndex(embedding_dim=embeddings.shape[1])
+        index.add(embeddings, metadata=image_paths)
+        if save_path:
+            index.save(save_path)
+        return index
+
+    @torch.no_grad()
+    def build_text_index(
+        self,
+        captions: list[str],
+        save_path: Path | None = None,
+        batch_size: int = 512,
+    ) -> EmbeddingIndex:
+        embeddings = self.embed_text(captions, batch_size=batch_size)
+        index = EmbeddingIndex(embedding_dim=embeddings.shape[1])
+        index.add(embeddings, metadata=captions)
+        if save_path:
+            index.save(save_path)
+        return index
+
+    @torch.no_grad()
+    def build_index_from_dataloader(
+        self,
+        dataloader: DataLoader,
+        image_save_path: Path | None = None,
+        text_save_path: Path | None = None,
+    ) -> tuple[EmbeddingIndex, EmbeddingIndex]:
+        all_image_paths = []
+        all_captions = []
+
+        for batch in dataloader:
+            all_image_paths.extend(batch["path"])
+            all_captions.extend(batch["caption"])
+
+        image_index = self.build_image_index(all_image_paths, save_path=image_save_path)
+        text_index = self.build_text_index(all_captions, save_path=text_save_path)
+
+        return image_index, text_index
+
+    @torch.no_grad()
+    def text_to_image(
+        self, queries: list[str], image_index: EmbeddingIndex, k: int = 5
+    ) -> list[list[str]]:
+        embeddings = self.embed_text(queries)
+        _, _, meta = image_index.search(embeddings, k=k)
+        return meta
+
+    @torch.no_grad()
+    def image_to_text(
+        self, image_paths: list[Path], text_index: EmbeddingIndex, k: int = 5
+    ) -> list[list[str]]:
+        embeddings = self.embed_image(image_paths)
+        _, _, meta = text_index.search(embeddings, k=k)
+        return meta
