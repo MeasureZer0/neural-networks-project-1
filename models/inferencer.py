@@ -7,9 +7,9 @@ import torchvision.io as io
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
 
-from datasets.transforms import ValTransform
 from models.contrastive_model import ContrastiveModel
 from models.retrieval import EmbeddingIndex
+from torch_datasets.transforms import ValTransform
 from training.configs.baseline_config import Config
 
 
