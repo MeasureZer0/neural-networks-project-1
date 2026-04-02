@@ -9,7 +9,7 @@ from transformers import AutoTokenizer
 
 from models.contrastive_model import ContrastiveModel
 from models.retrieval import EmbeddingIndex
-from torch_datasets import ValTransform
+from torch_datasets.transforms import ValTransform
 from training.configs.baseline_config import Config
 
 
