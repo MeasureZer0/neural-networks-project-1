@@ -7,9 +7,9 @@ import torch
 from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.data import DataLoader
 
-from datasets.coco_dataset import COCO_Dataset
-from datasets.transforms import TrainTransform, ValTransform
 from models.contrastive_model import ContrastiveModel
+from torch_datasets.coco_dataset import COCO_Dataset
+from torch_datasets.transforms import TrainTransform, ValTransform
 from training.checkpointing import load_checkpoint
 from training.configs.baseline_config import Config
 from training.loss import InfoNCELoss

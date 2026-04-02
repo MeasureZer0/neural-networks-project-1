@@ -4,11 +4,11 @@ from typing import Dict
 import torch
 from torch.utils.data import DataLoader
 
-from datasets.coco_dataset import COCO_Dataset
-from datasets.transforms import ValTransform
 from models.contrastive_model import ContrastiveModel
 from models.text_encoder import TextEncoder
 from models.visual_encoder import ImageEncoder
+from torch_datasets.coco_dataset import COCO_Dataset
+from torch_datasets.transforms import ValTransform
 from utils.profiler import flop_stats, model_stats, print_stats, vram_stats
 
 
