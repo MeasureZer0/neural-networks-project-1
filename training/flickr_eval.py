@@ -2,9 +2,9 @@ import argparse
 import sys
 from pathlib import Path
 
-from datasets import load_dataset as hf_load_dataset
 from torch.utils.data import DataLoader
 
+from datasets import load_dataset as hf_load_dataset
 from models.inferencer import ModelInferencer
 from torch_datasets.flickr8k_dataset import Flickr8k_Dataset
 from torch_datasets.transforms import ValTransform

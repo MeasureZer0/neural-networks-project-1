@@ -3,9 +3,10 @@ from typing import Callable, Dict, Optional
 
 import torch
 import torchvision.transforms.functional as TF
-from datasets import Dataset as HFDataset
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
+
+from datasets import Dataset as HFDataset
 
 logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 logging.getLogger("huggingface_hub").setLevel(logging.ERROR)

@@ -1,10 +1,10 @@
 import random
 from pathlib import Path
 
-from torch.utils.data import DataLoader, Subset
-
 from datasets.coco_dataset import COCO_Dataset
 from datasets.transforms import ValTransform
+from torch.utils.data import DataLoader, Subset
+
 from models.inferencer import ModelInferencer
 from models.retrieval import EmbeddingIndex
 from training.configs.baseline_config import Config
