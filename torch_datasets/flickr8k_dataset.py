@@ -35,8 +35,7 @@ class Flickr8k_Dataset(Dataset):
         if self.img_transform:
             image = self.img_transform(image)
 
-        captions = sample["caption"]
-        caption = captions[0] if isinstance(captions, list) else captions
+        caption = sample["caption_0"]
 
         tokens = self.tokenizer(
             caption,

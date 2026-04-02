@@ -6,8 +6,8 @@ import torch
 import torchvision.io as io
 from transformers import AutoTokenizer
 
-from datasets.transforms import ValTransform
 from models.contrastive_model import ContrastiveModel
+from torch_datasets.transforms import ValTransform
 
 
 class ModelInferencer:
