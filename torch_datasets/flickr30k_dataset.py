@@ -11,7 +11,7 @@ import torchvision.io as io
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoTokenizer
 
-from datasets.transforms import TrainTransform
+from torch_datasets.transforms import TrainTransform
 
 logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
 logging.getLogger("huggingface_hub").setLevel(logging.ERROR)

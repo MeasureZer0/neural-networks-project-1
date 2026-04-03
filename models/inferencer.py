@@ -6,11 +6,11 @@ import torch
 import torch.nn.functional as F
 import torchvision.io as io
 from torch.utils.data import DataLoader
-from torch_datasets.transforms import ValTransform
 from transformers import AutoTokenizer
 
 from models.contrastive_model import ContrastiveModel
 from models.retrieval import EmbeddingIndex
+from torch_datasets.transforms import ValTransform
 from training.configs.baseline_config import Config
 
 
