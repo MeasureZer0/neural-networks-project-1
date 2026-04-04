@@ -3,10 +3,10 @@ from pathlib import Path
 
 from torch.utils.data import DataLoader, Subset
 
-from datasets.coco_dataset import COCO_Dataset
-from datasets.transforms import ValTransform
 from models.inferencer import ModelInferencer
 from models.retrieval import EmbeddingIndex
+from torch_datasets.coco_dataset import COCO_Dataset
+from torch_datasets.transforms import ValTransform
 from training.configs.baseline_config import Config
 
 if __name__ == "__main__":
@@ -48,13 +48,13 @@ if __name__ == "__main__":
     sample = val_dataset[random_idx]
 
     query_caption = sample["caption"]
-    query_image_path = Path(sample["path"])
+    query_image_path = Path(sample["path"])  # type: ignore
 
     print(f"Query caption: {query_caption}")
     print(f"Query image:   {query_image_path}")
 
     t2i_results = inferencer.text_to_image(
-        queries=[query_caption],
+        queries=[query_caption],  # type: ignore
         image_index=image_index,
         k=5,
     )
