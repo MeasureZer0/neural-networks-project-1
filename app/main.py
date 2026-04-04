@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import threading
@@ -26,8 +27,9 @@ class EmbeddingExplorerApp:
         self.inferencer: ModelInferencer | None = None
         self.image_index: Any | None = None
         self.results: list = []
+        self.annotations: list[str] = []
+        self.text_embeddings: torch.Tensor | None = None
 
-        # interpolation state
         self._emb_a: Any | None = None
         self._emb_b: Any | None = None
         self._photo_refs: list = []  # prevent GC
@@ -55,6 +57,13 @@ class EmbeddingExplorerApp:
             command=self.upload_and_search_image,
         )
         self.upload_button.pack(side="left", padx=5)
+
+        self.image_to_text_button = tk.Button(
+            top_frame,
+            text="Search Text by Image",
+            command=self.image_to_text_async,
+        )
+        self.image_to_text_button.pack(side="left", padx=5)
 
         self.status_label = tk.Label(
             self.root, text="Initializing...", bd=1, relief="sunken", anchor="w"
@@ -158,11 +167,32 @@ class EmbeddingExplorerApp:
                 if os.path.exists(image_dir):
                     assert self.inferencer is not None
                     self.image_index = self.inferencer.build_image_index(image_paths)
-                    self.update_status("Ready to search.")
+                    self.update_status(
+                        "Image index built. Building text index (COCO val2017)..."
+                    )
                 else:
                     self.update_status(
                         f"Image directory {image_dir} not found. Ready for text-only searches."
                     )
+
+                # Load COCO annotations for image to text retrieval
+                ann_path = Path("data/coco/annotations/captions_val2017.json")
+                if ann_path.exists():
+                    with open(ann_path, "r", encoding="utf-8") as f:
+                        ann_data = json.load(f)
+
+                    self.annotations = [a["caption"] for a in ann_data["annotations"]]
+                    self.text_embeddings = torch.stack(
+                        [self.inferencer.embed_text(c) for c in self.annotations]
+                    )
+                    self.update_status(f"Loaded {len(self.annotations)} annotations.")
+                else:
+                    self.annotations = []
+                    self.text_embeddings = None
+                    self.update_status(f"Annotation file {ann_path} not found.")
+
+                self.update_status("Ready to search.")
+
             except Exception as e:
                 self.update_status(f"Error: {str(e)}")
 
@@ -240,6 +270,47 @@ class EmbeddingExplorerApp:
                 self.update_status("Image-to-Image search complete.")
             except Exception as e:
                 self.update_status(f"Similar Search Error: {str(e)}")
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def image_to_text_async(self) -> None:
+        if (
+            not self.inferencer
+            or self.text_embeddings is None
+            or len(self.annotations) == 0
+        ):
+            self.update_status("Text embeddings not ready")
+            return
+
+        file_path = filedialog.askopenfilename(
+            filetypes=[("Image files", "*.jpg *.jpeg *.png")]
+        )
+        if not file_path:
+            return
+
+        def worker() -> None:
+            try:
+                self.update_status("Running image to text retrieval...")
+
+                assert self.inferencer is not None
+                assert self.text_embeddings is not None
+                img_emb = self.inferencer.embed_image(file_path)
+                text_embs = self.text_embeddings
+
+                sims = torch.matmul(text_embs, img_emb.T).squeeze()
+                sorted_idx = torch.argsort(sims, descending=True)
+                results = [
+                    (self.annotations[i], sims[i].item()) for i in sorted_idx[:10]
+                ]
+
+                self.root.after(
+                    0, lambda: self.display_classification_results(file_path, results)
+                )
+
+                self.update_status("Image to text retrieval complete.")
+
+            except Exception as e:
+                self.update_status(f"Image to text error: {e}")
 
         threading.Thread(target=worker, daemon=True).start()
 
