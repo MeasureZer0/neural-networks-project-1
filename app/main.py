@@ -6,6 +6,9 @@ from pathlib import Path
 from tkinter import filedialog
 from typing import Any
 
+import torch
+import torch.nn.functional as F
+import torchvision.io as io
 from PIL import Image, ImageTk
 
 # Add project root to sys.path
@@ -28,7 +31,6 @@ class EmbeddingExplorerApp:
         self._emb_a: Any | None = None
         self._emb_b: Any | None = None
         self._photo_refs: list = []  # prevent GC
-        self._interp_active = False
 
         self.setup_ui()
         self.load_model_async()
@@ -103,6 +105,26 @@ class EmbeddingExplorerApp:
             command=self.on_slider_change,
         )
         self.slider.pack(side="left", fill="x", expand=True)
+
+        # Zero-shot labeler section
+        labeler_frame = tk.LabelFrame(
+            self.root, text="Zero-Shot Labeler", padx=5, pady=5
+        )
+        labeler_frame.pack(fill="x", padx=10, pady=5)
+
+        self.classes_entry = tk.Entry(labeler_frame, width=60)
+        self.classes_entry.insert(0, "dog, cat, car, tree, person")
+        self.classes_entry.pack(side="left", padx=5)
+
+        self.select_image_button = tk.Button(
+            labeler_frame,
+            text="Select Image & Classify",
+            command=self.classify_image_async,
+        )
+        self.select_image_button.pack(side="left", padx=5)
+
+        self.labeler_result_frame = tk.Frame(self.root)
+        self.labeler_result_frame.pack(fill="x", padx=10, pady=3)
 
         # Canvas and scrollbar setup
         self.canvas.create_window((0, 0), window=self.scroll_frame, anchor="nw")
@@ -218,6 +240,74 @@ class EmbeddingExplorerApp:
 
         threading.Thread(target=worker, daemon=True).start()
 
+    def classify_image_async(self) -> None:
+        if not self.inferencer:
+            return
+
+        try:
+            file_path = filedialog.askopenfilename(
+                filetypes=[("Image files", "*.jpg *.jpeg *.png")]
+            )
+            if not file_path:
+                return
+
+            classes_raw = self.classes_entry.get()
+            class_names = [c.strip() for c in classes_raw.split(",") if c.strip()]
+            if len(class_names) == 0:
+                self.update_status("No classes provided.")
+                return
+
+            template = "a photo of a {}"
+            class_prompts = [template.format(c) for c in class_names]
+
+            def worker() -> None:
+                try:
+                    self.update_status("Running zero-shot classification...")
+                    image_tensor = io.read_image(file_path)
+                    predictions, logits = self.inferencer.classify_zero_shot(  # type: ignore
+                        images=[image_tensor],
+                        class_prompts=class_prompts,
+                    )
+
+                    probs = F.softmax(logits, dim=-1)[0]
+                    sorted_indices = torch.argsort(probs, descending=True)
+                    results = [
+                        (class_names[i], probs[i].item()) for i in sorted_indices
+                    ]
+
+                    self.root.after(
+                        0,
+                        lambda: self.display_classification_results(file_path, results),
+                    )
+
+                    self.update_status("Classification complete.")
+
+                except Exception as e:
+                    self.update_status(f"Classification error: {e}")
+
+            threading.Thread(target=worker, daemon=True).start()
+
+        except Exception as e:
+            self.update_status(f"File selection error: {e}")
+
+    def display_classification_results(self, image_path: str, results: list) -> None:
+        for widget in self.labeler_result_frame.winfo_children():
+            widget.destroy()
+
+        self._photo_refs.clear()
+
+        img = Image.open(image_path)
+        img.thumbnail((200, 200))
+        photo = ImageTk.PhotoImage(img)
+        self._photo_refs.append(photo)
+
+        img_label = tk.Label(self.labeler_result_frame, image=photo)
+        img_label.pack()
+
+        for class_name, prob in results:
+            text = f"{class_name}: {prob:.4f}"
+            tk.Label(self.labeler_result_frame, text=text).pack(anchor="w")
+
     def upload_and_search_image(self) -> None:
         try:
             file_path = filedialog.askopenfilename(
@@ -261,10 +351,7 @@ class EmbeddingExplorerApp:
 
     def clear_entry(self, event: tk.Event) -> None:
         widget = event.widget
-        if isinstance(widget, tk.Entry) and widget.get() in [
-            "Enter text A",
-            "Enter text B",
-        ]:
+        if isinstance(widget, tk.Entry):
             widget.delete(0, tk.END)
             widget.config(fg="black")
 
