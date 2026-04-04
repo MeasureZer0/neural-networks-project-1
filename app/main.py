@@ -194,6 +194,9 @@ class EmbeddingExplorerApp:
         for widget in self.scroll_frame.winfo_children():
             widget.destroy()
 
+        for widget in self.labeler_result_frame.winfo_children():
+            widget.destroy()
+
         self._photo_refs.clear()  # Keep reference to avoid GC
         for i, (m, score) in enumerate(zip(metadata[0], scores[0], strict=True)):
             img_path = str(m)
@@ -292,6 +295,9 @@ class EmbeddingExplorerApp:
 
     def display_classification_results(self, image_path: str, results: list) -> None:
         for widget in self.labeler_result_frame.winfo_children():
+            widget.destroy()
+
+        for widget in self.scroll_frame.winfo_children():
             widget.destroy()
 
         self._photo_refs.clear()
