@@ -45,8 +45,12 @@ def profile_encoders(
             model.eval()
 
             stats = {}
-            stats.update(model_stats(model, use_fp16=use_fp16))
-            stats.update(flop_stats(model, tokens))
+            text_inputs = (tokens["input_ids"], tokens["attention_mask"])
+            try:
+                stats.update(flop_stats(model, text_inputs))
+            except Exception as e:
+                print(f"  [FLOPs Error] Skipping FLOPs for {model_type}: {e}")
+                stats["flops_G"] = 0.0
             stats.update(vram_stats(model, device, tokens, use_fp16=use_fp16))
             print_stats(f"TextEncoder: {model_type} ({precision})", stats)
 
