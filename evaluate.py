@@ -1,6 +1,8 @@
 import random
 from pathlib import Path
 
+from datasets.coco_dataset import COCO_Dataset
+from datasets.transforms import ValTransform
 from torch.utils.data import DataLoader, Subset
 
 from models.inferencer import ModelInferencer
