@@ -45,7 +45,7 @@ def profile_encoders(
             model.eval()
 
             stats = {}
-            text_inputs = (tokens["input_ids"], tokens["attention_mask"])
+            text_inputs = tokens
             try:
                 stats.update(flop_stats(model, text_inputs))
             except Exception as e:
