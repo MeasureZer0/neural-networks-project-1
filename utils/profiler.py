@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple, Union, cast
+from typing import Dict, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -28,11 +28,22 @@ def model_stats(model: nn.Module, use_fp16: bool = False) -> Dict[str, float]:
 
 def flop_stats(model: nn.Module, sample_input: ModelInput) -> Dict[str, float]:
     model.eval()
+
+    inputs: Tuple[torch.Tensor, ...]
+
     if isinstance(sample_input, torch.Tensor):
         inputs = (sample_input[:1],)
+
+    elif isinstance(sample_input, dict):
+        inputs = tuple(v[:1] for v in sample_input.values())
+
+    elif isinstance(sample_input, tuple):
+        inputs = tuple(v[:1] for v in sample_input if isinstance(v, torch.Tensor))
+
     else:
-        inputs = ({k: v[:1] for k, v in sample_input.items()},)
-    flops = FlopCountAnalysis(model, cast(Any, inputs))
+        raise TypeError(f"Unsupported input type: {type(sample_input)}")
+
+    flops = FlopCountAnalysis(model, inputs)
     flops.unsupported_ops_warnings(False)
     flops.uncalled_modules_warnings(False)
 
