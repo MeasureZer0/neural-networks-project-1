@@ -231,9 +231,7 @@ class EmbeddingExplorerApp:
                         ann_data = json.load(f)
 
                     self.annotations = [a["caption"] for a in ann_data["annotations"]]
-                    self.update_status(
-                        "Loading text embedding cache (COCO val2017)..."
-                    )
+                    self.update_status("Loading text embedding cache (COCO val2017)...")
                     self.text_embeddings = self._load_or_build_text_embeddings(
                         self.annotations, text_embeddings_cache_path
                     )
