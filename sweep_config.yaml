@@ -1,0 +1,105 @@
+program: training/train.py
+command:
+  - ${env}
+  - uv
+  - run
+  - python
+  - -m
+  - training.train
+  - --config
+  - baseline_config
+
+method: bayes
+metric:
+  name: epoch/val_loss
+  goal: minimize
+
+early_terminate:
+  type: hyperband
+  min_iter: 5
+  eta: 3
+
+parameters:
+
+  # Optimizer
+  lr:
+    distribution: log_uniform_values
+    min: 5e-6
+    max: 5e-4
+
+  weight_decay:
+    distribution: log_uniform_values
+    min: 1e-5
+    max: 1e-3
+
+  adam_beta1:
+    distribution: uniform
+    min: 0.85
+    max: 0.99
+
+  adam_beta2:
+    distribution: uniform
+    min: 0.95
+    max: 0.9999
+  # Avoid fp16 underflow
+  adam_eps:
+    values: [1e-8, 1e-7]
+
+  grad_clip_norm:
+    values: [0.5, 1.0, 2.0, 5.0]
+
+  # LR schedule
+  warmup_epochs:
+    values: [1, 2, 3]
+
+  # --- Model ---
+  embedding_dim:
+    values: [256, 512]
+
+  # Loss / temperature
+  init_temperature:
+    distribution: log_uniform_values
+    min: 0.05
+    max: 0.1
+
+  # Train augmentations
+  crop_scale_min:
+    values: [0.5, 0.7, 0.9]
+
+  hflip_p:
+    values: [0.0, 0.5]
+
+  use_jitter:
+    values: [true, false]
+
+  # --- Val transform ---
+  use_ccrop:
+    values: [true, false]
+
+  # Fixed
+  epochs:
+    value: 5
+
+  batch_size:
+    value: 256
+
+  use_fp16:
+    value: true
+
+  image_encoder_type:
+    value: vit
+
+  image_encoder_freeze:
+    value: true
+
+  text_encoder_freeze:
+    value: false
+
+  text_encoder_type:
+    value: clip
+
+  tokenizer:
+    value: openai/clip-vit-base-patch32
+
+  tokenizer_maxlength:
+    value: 77
