@@ -16,6 +16,7 @@ from PIL import Image, ImageTk
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.inferencer import ModelInferencer
+from models.retrieval import EmbeddingIndex
 
 
 class EmbeddingExplorerApp:
@@ -36,6 +37,54 @@ class EmbeddingExplorerApp:
 
         self.setup_ui()
         self.load_model_async()
+
+    def _get_cache_paths(self, checkpoint_path: Path) -> tuple[Path, Path]:
+        cache_dir = Path("checkpoints")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_key = checkpoint_path.stem
+        image_index_path = cache_dir / f"{cache_key}_coco_val2017_image_index.faiss"
+        text_embeddings_path = (
+            cache_dir / f"{cache_key}_coco_val2017_text_embeddings.pt"
+        )
+        return image_index_path, text_embeddings_path
+
+    def _load_or_build_image_index(
+        self,
+        image_paths: list[Path],
+        cache_path: Path,
+    ) -> EmbeddingIndex:
+        assert self.inferencer is not None
+
+        if cache_path.exists() and cache_path.with_suffix(".pkl").exists():
+            index = EmbeddingIndex(self.inferencer.config.embedding_dim)
+            index.load(cache_path)
+            return index
+
+        index = self.inferencer.build_image_index(image_paths, save_path=cache_path)
+        return index
+
+    def _load_or_build_text_embeddings(
+        self,
+        annotations: list[str],
+        cache_path: Path,
+    ) -> torch.Tensor:
+        assert self.inferencer is not None
+
+        if cache_path.exists():
+            payload = torch.load(cache_path, map_location="cpu", weights_only=False)
+            cached_annotations = payload.get("annotations")
+            cached_embeddings = payload.get("embeddings")
+            if cached_annotations == annotations and isinstance(
+                cached_embeddings, torch.Tensor
+            ):
+                return cached_embeddings
+
+        embeddings = self.inferencer.embed_text(annotations)
+        torch.save(
+            {"annotations": annotations, "embeddings": embeddings},
+            cache_path,
+        )
+        return embeddings
 
     def setup_ui(self) -> None:
         # Layout components
@@ -147,29 +196,29 @@ class EmbeddingExplorerApp:
                 self.update_status("Loading model...")
                 # Assuming high-level checkpoint exists or using a default model
                 # You might need to specify the path to your checkpoint here
-                checkpoint_path = (
-                    "checkpoints/last.ckpt"  # Update with actual path if needed
-                )
-                if not os.path.exists(checkpoint_path):
+                checkpoint_path = Path(
+                    "checkpoints/last.ckpt"
+                )  # Update with actual path if needed
+                if not checkpoint_path.exists():
                     self.update_status(
                         "Checkpoint not found at checkpoints/last.ckpt. Please update path."
                     )
                     return
 
                 self.inferencer = ModelInferencer(checkpoint_path)
-                self.update_status(
-                    "Model loaded. Building image index (COCO val2017)..."
+                image_index_cache_path, text_embeddings_cache_path = (
+                    self._get_cache_paths(checkpoint_path)
                 )
 
                 # Default to indexing COCO val2017 for demo
                 image_dir = Path("data/coco/val2017")
                 image_paths = list(image_dir.glob("*.jpg"))
-                if os.path.exists(image_dir):
-                    assert self.inferencer is not None
-                    self.image_index = self.inferencer.build_image_index(image_paths)
-                    self.update_status(
-                        "Image index built. Building text index (COCO val2017)..."
+                if image_dir.exists():
+                    self.update_status("Loading image index cache (COCO val2017)...")
+                    self.image_index = self._load_or_build_image_index(
+                        image_paths, image_index_cache_path
                     )
+                    self.update_status("Image index ready.")
                 else:
                     self.update_status(
                         f"Image directory {image_dir} not found. Ready for text-only searches."
@@ -182,8 +231,9 @@ class EmbeddingExplorerApp:
                         ann_data = json.load(f)
 
                     self.annotations = [a["caption"] for a in ann_data["annotations"]]
-                    self.text_embeddings = torch.stack(
-                        [self.inferencer.embed_text(c) for c in self.annotations]
+                    self.update_status("Loading text embedding cache (COCO val2017)...")
+                    self.text_embeddings = self._load_or_build_text_embeddings(
+                        self.annotations, text_embeddings_cache_path
                     )
                     self.update_status(f"Loaded {len(self.annotations)} annotations.")
                 else:
